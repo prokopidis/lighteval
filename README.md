@@ -21,7 +21,9 @@
 
 ---
 
-**Documentation**: <a href="https://github.com/huggingface/lighteval/wiki" target="_blank">Lighteval's Wiki</a>
+This is a forked lighteval repository, extended to include Greek tasks and prompts.
+
+**Lighteval Documentation**: <a href="https://github.com/huggingface/lighteval/wiki" target="_blank">Lighteval's Wiki</a>
 
 ---
 
@@ -54,11 +56,17 @@ Hub, S3, or locally.
 
 ## ⚡️ Installation
 
+To pip install the current repo (Greek extension), you can either:
+
+`pip install lighteval[accelerate,extended_tasks]@git+https://github.com/LeonVouk/lighteval.git`
+
+or, for active development, clone the repository and install it locally:
+
 ```bash
-pip install lighteval[accelerate]
+pip install -e ".[accelerate,extended_tasks]"
 ```
 
-Lighteval allows for many extras when installing, see [here](https://github.com/huggingface/lighteval/wiki/Installation) for a complete list.
+Lighteval allows for many extras when installing, see [here](https://github.com/huggingface/lighteval/wiki/Installation) for a complete list. `extended_tasks` is only necessary when evaluating OpenAI models.
 
 If you want to push results to the Hugging Face Hub, add your access token as
 an environment variable:
@@ -87,6 +95,39 @@ lighteval accelerate \
     --output_dir="./evals/"
 ```
 
+### OpenAI and LiteLLM-proxy requests
+
+To evaluate an OpenAI model, e.g., `gpt-3.5-turbo`, make sure you've added a working `OPENAI_API_KEY` to your env and run:
+
+```shell
+lighteval accelerate \
+      --model_args "openai,model=gpt-3.5-turbo" \
+      --tasks "community|mmlu_pro_cot_el|0|0" \
+      --override_batch_size 1  \
+      --output_dir="./evals/" \
+      --custom_tasks "./community_tasks/greek_evals.py" \
+      --save_details
+```
+
+You can optionally add the `--max_sample 10` flag for quick testing. This will limit the run to only 10 benchmark rows.
+
+### HF model requests
+
+If you don't have an existing LLM deployment, you can simply provide the [HuggingFace](https://huggingface.co/) id (e.g., `ilsp/Meltemi-7B-Instruct-v1.5`).
+
+```shell
+export ID="ilsp/Meltemi-7B-Instruct-v1.5"
+export EVAL_OUTPUTS_PATH="/path/to/eval/outputs"
+
+accelerate launch --multi_gpu --num_processes=4 run_evals_accelerate.py \
+      --model_args="pretrained=${ID},model_parallel=True" \
+      --tasks examples/tasks/extended_eval_greek_tasks.txt \
+      --custom_tasks "community_tasks/greek_evals.py" \
+      --override_batch_size 1 \
+      --output_dir="${EVAL_OUTPUTS_PATH}" \
+      --save_details
+```
+
 ## 🙏 Acknowledgements
 
 Lighteval started as an extension of the fantastic [Eleuther AI
@@ -104,9 +145,17 @@ Harness and HELM teams for their pioneering work on LLM evaluations.
 Got ideas? Found a bug? Want to add a
 [task](https://github.com/huggingface/lighteval/wiki/Adding-a-Custom-Task) or
 [metric](https://github.com/huggingface/lighteval/wiki/Adding-a-New-Metric)?
-Contributions are warmly
-welcomed!
+Contributions are warmly welcomed!
 
+If you're adding a new feature, please open an issue first.
+
+If you open a PR, don't forget to run the styling!
+
+```bash
+pip install -e .[dev]
+pre-commit install
+pre-commit run --all-files
+```
 ## 📜 Citation
 
 ```bibtex
