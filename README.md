@@ -120,12 +120,12 @@ export ID="ilsp/Meltemi-7B-Instruct-v1.5"
 export EVAL_OUTPUTS_PATH="/path/to/eval/outputs"
 
 accelerate launch --multi_gpu --num_processes=4 run_evals_accelerate.py \
-                --model_args="pretrained=${ID},model_parallel=True" \
-                --tasks examples/tasks/extended_eval_greek_tasks.txt \
-                --custom_tasks "community_tasks/greek_evals.py" \
-                --override_batch_size 1 \
-                --output_dir="${EVAL_OUTPUTS_PATH}" \
-                --save_details
+      --model_args="pretrained=${ID},model_parallel=True" \
+      --tasks examples/tasks/extended_eval_greek_tasks.txt \
+      --custom_tasks "community_tasks/greek_evals.py" \
+      --override_batch_size 1 \
+      --output_dir="${EVAL_OUTPUTS_PATH}" \
+      --save_details
 ```
 
 ## 🙏 Acknowledgements
