@@ -39,6 +39,7 @@ from lighteval.tasks.default_prompts import mgsm
 from lighteval.metrics.dynamic_metrics import loglikelihood_acc_metric
 from lighteval.metrics.normalizations import LogProbTokenNorm
 from lighteval.metrics.metrics import Metrics
+from lighteval.metrics.metrics_sample import JudgeLLMMTBench
 from lighteval.metrics.utils.metric_utils import (
     MetricCategory,
     MetricUseCase,
@@ -47,7 +48,13 @@ from lighteval.metrics.utils.metric_utils import (
 )
 from lighteval.tasks.extended.mt_bench.main import (
     mt_bench_prompt,
-    llm_judge_mt_bench
+    process_judge_response,
+)
+from lighteval.tasks.extended.mt_bench.judge_prompt_el_templates import (
+    flow_judge_prompt_mt_bench_el_without_ref,
+    flow_judge_prompt_mt_bench_el_with_ref,
+    flow_judge_prompt_mt_bench_el_without_ref_greek_judge,
+    flow_judge_prompt_mt_bench_el_with_ref_greek_judge
 )
 from lighteval.tasks.extended.ifeval.main import (
     ifeval_prompt, 
@@ -698,6 +705,52 @@ mgsm_el_task = LightevalTaskConfig(
 
 # MT-Bench EL
 
+def flow_judge_mt_bench_el_prompt(question, answer, options, gold):
+    if gold is not None and len(gold) > 0:
+        return flow_judge_prompt_mt_bench_el_with_ref(question, options, answer, gold)
+
+    return flow_judge_prompt_mt_bench_el_without_ref(question, options, answer, gold)
+
+def flow_judge_mt_bench_el_prompt_greek_judge(question, answer, options, gold):
+    if gold is not None and len(gold) > 0:
+        return flow_judge_prompt_mt_bench_el_with_ref_greek_judge(question, options, answer, gold)
+
+    return flow_judge_prompt_mt_bench_el_without_ref_greek_judge(question, options, answer, gold)
+
+llm_judge_mt_bench_el = SampleLevelMetricGrouping(
+    metric_name=["judge_score_turn_1", "judge_score_turn_2"],
+    higher_is_better={"judge_score_turn_1": True, "judge_score_turn_2": True},
+    category=MetricCategory.LLM_AS_JUDGE_MULTI_TURN,
+    use_case=MetricUseCase.SUMMARIZATION,
+    sample_level_fn=JudgeLLMMTBench(
+        judge_model_name="flowaicom/Flow-Judge-v0.1",
+        template=flow_judge_mt_bench_el_prompt,
+        process_judge_response=process_judge_response,
+        judge_backend="vllm",
+    ).compute,
+    corpus_level_fn={
+        "judge_score_turn_1": np.mean,
+        "judge_score_turn_2": np.mean,
+    },
+)
+
+llm_judge_mt_bench_el_greek_judge = SampleLevelMetricGrouping(
+    metric_name=["judge_score_turn_1", "judge_score_turn_2"],
+    higher_is_better={"judge_score_turn_1": True, "judge_score_turn_2": True},
+    category=MetricCategory.LLM_AS_JUDGE_MULTI_TURN,
+    use_case=MetricUseCase.SUMMARIZATION,
+    sample_level_fn=JudgeLLMMTBench(
+        judge_model_name="flowaicom/Flow-Judge-v0.1",
+        template=flow_judge_mt_bench_el_prompt_greek_judge,
+        process_judge_response=process_judge_response,
+        judge_backend="vllm",
+    ).compute,
+    corpus_level_fn={
+        "judge_score_turn_1": np.mean,
+        "judge_score_turn_2": np.mean,
+    },
+)
+
 mt_bench_el_task = LightevalTaskConfig(
     name="mt_bench",
     prompt_function=mt_bench_prompt,
@@ -708,12 +761,44 @@ mt_bench_el_task = LightevalTaskConfig(
     evaluation_splits=["train"],
     few_shots_split="",
     few_shots_select="random",
-    metric=[llm_judge_mt_bench],
+    metric=[llm_judge_mt_bench_el],
     generation_size=1024,
     stop_sequence=[],
 )
 
-# TODO create prompt to judge to make sure they know it's greek. Also maybe make prompt in greek? Depending on judge. We shall see
+class MTBenchElTask(LightevalTaskConfig):
+    def __init__(
+        self,
+        name,
+        metric_fn
+    ):
+        super().__init__(
+            name=name,
+            prompt_function=mt_bench_prompt,
+            suite=["community"],
+            hf_repo="ilsp/mt-bench-greek",
+            hf_subset="default",
+            hf_avail_splits=["train"],
+            evaluation_splits=["train"],
+            few_shots_split="",
+            few_shots_select="random",
+            metric=[metric_fn],
+            generation_size=1024,
+            stop_sequence=[],
+            frozen=False,
+            trust_dataset=True,
+            version=0
+        )
+
+
+MT_BENCH_EL_METRIC_MAPPER = {
+    'default': llm_judge_mt_bench_el,
+    'greek_judge': llm_judge_mt_bench_el_greek_judge
+}
+
+MTBENCHEL_TASKS = [
+    MTBenchElTask(name=f"mt_bench_el:{metric_fn}", metric=[MT_BENCH_EL_METRIC_MAPPER[metric_fn]]) for metric_fn in MT_BENCH_EL_METRIC_MAPPER
+]
 
 
 # IFEVAL EL
@@ -1007,13 +1092,13 @@ _TASKS = (
     BELEBELE_TASKS +
     FLORES200_TASKS +
     MMLU_PRO_EL_TASKS +
+    MTBENCHEL_TASKS +
     [hellaswag_el_task] +
     [xnli_el_task] +
     [xnli_2_el_task] +
     [medical_mc_qa_el_task] +
     [greek_civics_qa_task] +
     [mgsm_el_task] +
-    [mt_bench_el_task] +
     [ifeval_el_task]
 )
 
