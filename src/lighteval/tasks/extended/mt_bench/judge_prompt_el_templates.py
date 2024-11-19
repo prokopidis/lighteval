@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 
-def flow_judge_prompt_mt_bench_without_ref(question, options, answer, gold):
+def flow_judge_prompt_mt_bench_el_without_ref(question, options, answer, gold):
     return [
         {
             "role": "user",

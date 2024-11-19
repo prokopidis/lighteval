@@ -23,6 +23,7 @@
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from typing import Optional
 
 from tqdm import tqdm
@@ -62,15 +63,11 @@ class OpenAIClient(LightevalModel):
     def __init__(self, config, env_config) -> None:
         api_key = os.environ["OPENAI_API_KEY"]
         
-        self.litellm_proxy_request = False
-        if config.base_url:
-            self.litellm_proxy_request = True
-
+        self.litellm_proxy_request = True if config.base_url else False
 
         self.client = OpenAI(api_key=api_key)
         if self.litellm_proxy_request:
             self.client.base_url = config.base_url
-
 
         self.model_info = ModelInfo(
             model_name=config.model,
@@ -93,21 +90,16 @@ class OpenAIClient(LightevalModel):
 
     def __call_api(self, prompt, return_logits, max_new_tokens, num_samples, logit_bias):
         
+        # TODO check why response_format={"type": "text"} isn't compatible with LiteLLM proxy
         completion_request = self.client.chat.completions.create
         if not self.litellm_proxy_request:
-            hlog_warn(f"Not a litellm proxy request -> setting response format to `text`.")
-            # TODO check if works -> fix import and remove test logging
-            from functools import partial
             completion_request = partial(self.client.chat.completions.create, response_format = {"type":"text"})
-        else:
-            hlog_warn(f"litellm proxy request -> no response format necessary.")
 
         for _ in range(self.API_MAX_RETRY):
             try:               
                 response = completion_request(
                     model=self.model,
                     messages=[{"role": "user", "content": prompt}],
-                    # TODO check if implementation is fine and then remove response_format={"type": "text"},
                     max_tokens=max_new_tokens if max_new_tokens > 0 else None,
                     logprobs=return_logits,
                     logit_bias=logit_bias,
