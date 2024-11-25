@@ -253,7 +253,20 @@ class PromptManager:
                 examples.insert(0, {"role": "system", "content": system_prompt + instruction})
             else:  # Else we add the instruction to the first example
                 examples[0]["content"] = instruction + examples[0]["content"]
-            return self.model.tokenizer.apply_chat_template(examples, tokenize=False, add_generation_prompt=True)
+
+            if hasattr(self.model.tokenizer, "apply_chat_template"):
+                return self.model.tokenizer.apply_chat_template(examples, tokenize=False, add_generation_prompt=True)
+            else:
+                hlog_warn(
+                    f"The tokenizer of type {type(self.model.tokenizer)} does not support "
+                    "`apply_chat_template` or equivalent functionality. This is not an issue "
+                    "if you're using an API, such as a GPT model. Continuing without it."
+                )
+                all_examples = "\n\n".join(example["content"] for example in examples if "content" in example)
+                output = (system_prompt or "") + instruction + all_examples
+                if output == "\n\n":
+                    return ""
+                return output
         else:
             if system_prompt is not None:
                 output = system_prompt + instruction + "\n\n".join(examples)
