@@ -26,60 +26,134 @@ Custom evaluation tasks for lighteval
 
 This file generally create just a TASKS_TABLE and TASKS_GROUPS which are then imported by LightEval.
 """
-import regex as re
-from aenum import extend_enum
-import numpy as np
 import copy
 
-from lighteval.tasks.lighteval_task import LightevalTaskConfig
-from lighteval.metrics.metrics import Metrics
-from lighteval.tasks.default_prompts import hellaswag_preprocess
-from lighteval.tasks.requests import Doc
-from lighteval.tasks.default_prompts import mgsm
+import numpy as np
+import regex as re
+from aenum import extend_enum
+
 from lighteval.metrics.dynamic_metrics import loglikelihood_acc_metric
-from lighteval.metrics.normalizations import LogProbTokenNorm
 from lighteval.metrics.metrics import Metrics
 from lighteval.metrics.metrics_sample import JudgeLLMMTBench
+from lighteval.metrics.normalizations import LogProbTokenNorm
 from lighteval.metrics.utils.metric_utils import (
     MetricCategory,
     MetricUseCase,
     SampleLevelMetric,
-    SampleLevelMetricGrouping
+    SampleLevelMetricGrouping,
+)
+from lighteval.tasks.default_prompts import hellaswag_preprocess, mgsm
+from lighteval.tasks.extended.ifeval import (
+    ifeval_el_instructions_registry as instructions_registry,
+)
+from lighteval.tasks.extended.ifeval.main import (
+    agg_inst_level_acc,
+    ifeval_prompt,
+    submetric_names,
+)
+from lighteval.tasks.extended.mt_bench.judge_prompt_el_templates import (
+    flow_judge_prompt_mt_bench_el_with_ref,
+    flow_judge_prompt_mt_bench_el_with_ref_greek_judge,
+    flow_judge_prompt_mt_bench_el_without_ref,
+    flow_judge_prompt_mt_bench_el_without_ref_greek_judge,
 )
 from lighteval.tasks.extended.mt_bench.main import (
     mt_bench_prompt,
     process_judge_response,
 )
-from lighteval.tasks.extended.mt_bench.judge_prompt_el_templates import (
-    flow_judge_prompt_mt_bench_el_without_ref,
-    flow_judge_prompt_mt_bench_el_with_ref,
-    flow_judge_prompt_mt_bench_el_without_ref_greek_judge,
-    flow_judge_prompt_mt_bench_el_with_ref_greek_judge
-)
-from lighteval.tasks.extended.ifeval.main import (
-    ifeval_prompt, 
-    submetric_names,
-    agg_inst_level_acc
-)
-from lighteval.tasks.extended.ifeval import ifeval_el_instructions_registry as instructions_registry
+from lighteval.tasks.lighteval_task import LightevalTaskConfig
+from lighteval.tasks.requests import Doc
+
 # MMLU
 
-GREEK_LETTER_INDICES = ['Α', 'Β', 'Γ', 'Δ', 'Ε', 'Ζ', 'Η', 'Θ', 'Ι', 'Κ', 'Λ', 'Μ', 'Ν', 'Ξ', 'Ο', 'Π', 'Ρ', 'Σ', 'Τ', 'Υ', 'Φ', 'Χ', 'Ψ', 'Ω']
+GREEK_LETTER_INDICES = [
+    "Α",
+    "Β",
+    "Γ",
+    "Δ",
+    "Ε",
+    "Ζ",
+    "Η",
+    "Θ",
+    "Ι",
+    "Κ",
+    "Λ",
+    "Μ",
+    "Ν",
+    "Ξ",
+    "Ο",
+    "Π",
+    "Ρ",
+    "Σ",
+    "Τ",
+    "Υ",
+    "Φ",
+    "Χ",
+    "Ψ",
+    "Ω",
+]
 
 MMLU_EL_SUBSETS = [
-    "all", "abstract_algebra", "anatomy", "astronomy", "business_ethics", "clinical_knowledge", "college_biology",
-    "college_chemistry", "college_computer_science", "college_mathematics", "college_medicine", "college_physics",
-    "computer_security", "conceptual_physics", "econometrics", "electrical_engineering", "elementary_mathematics",
-    "formal_logic", "global_facts", "high_school_biology", "high_school_chemistry", "high_school_computer_science",
-    "high_school_european_history", "high_school_geography", "high_school_government_and_politics",
-    "high_school_macroeconomics", "high_school_mathematics", "high_school_microeconomics", "high_school_physics",
-    "high_school_psychology", "high_school_statistics", "high_school_us_history", "high_school_world_history",
-    "human_aging", "human_sexuality", "international_law", "jurisprudence", "logical_fallacies", "machine_learning",
-    "management", "marketing", "medical_genetics", "miscellaneous", "moral_disputes", "moral_scenarios", "nutrition",
-    "philosophy", "prehistory", "professional_accounting", "professional_law", "professional_medicine",
-    "professional_psychology", "public_relations", "security_studies", "sociology", "us_foreign_policy",
-    "virology", "world_religions"
+    "all",
+    "abstract_algebra",
+    "anatomy",
+    "astronomy",
+    "business_ethics",
+    "clinical_knowledge",
+    "college_biology",
+    "college_chemistry",
+    "college_computer_science",
+    "college_mathematics",
+    "college_medicine",
+    "college_physics",
+    "computer_security",
+    "conceptual_physics",
+    "econometrics",
+    "electrical_engineering",
+    "elementary_mathematics",
+    "formal_logic",
+    "global_facts",
+    "high_school_biology",
+    "high_school_chemistry",
+    "high_school_computer_science",
+    "high_school_european_history",
+    "high_school_geography",
+    "high_school_government_and_politics",
+    "high_school_macroeconomics",
+    "high_school_mathematics",
+    "high_school_microeconomics",
+    "high_school_physics",
+    "high_school_psychology",
+    "high_school_statistics",
+    "high_school_us_history",
+    "high_school_world_history",
+    "human_aging",
+    "human_sexuality",
+    "international_law",
+    "jurisprudence",
+    "logical_fallacies",
+    "machine_learning",
+    "management",
+    "marketing",
+    "medical_genetics",
+    "miscellaneous",
+    "moral_disputes",
+    "moral_scenarios",
+    "nutrition",
+    "philosophy",
+    "prehistory",
+    "professional_accounting",
+    "professional_law",
+    "professional_medicine",
+    "professional_psychology",
+    "public_relations",
+    "security_studies",
+    "sociology",
+    "us_foreign_policy",
+    "virology",
+    "world_religions",
 ]
+
 
 class MMLUELTask(LightevalTaskConfig):
     def __init__(
@@ -103,17 +177,27 @@ class MMLUELTask(LightevalTaskConfig):
             output_regex=None,
             frozen=False,
             trust_dataset=True,
-            version=0
+            version=0,
         )
+
 
 def mmlu_el_prompt(line, topic, task_name: str = None):
     # TODO probably have to change choice labels.
     query = f"Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής (που παρουσιάζονται μαζί με της απαντήσεις τους) έχουν να κάνουν με {line['subject'].replace('_', ' ')}.\n\n"
     query += line["question"] + "\n"
-    query += "".join([f"{key}. {choice}\n" for key, choice in zip(GREEK_LETTER_INDICES, line["choices"])])
+    query += "".join(
+        [
+            f"{key}. {choice}\n"
+            for key, choice in zip(GREEK_LETTER_INDICES, line["choices"])
+        ]
+    )
     query += "Απάντηση:"
 
-    gold_ix = GREEK_LETTER_INDICES.index(line["answer"]) if isinstance(line["answer"], str) else line["answer"]
+    gold_ix = (
+        GREEK_LETTER_INDICES.index(line["answer"])
+        if isinstance(line["answer"], str)
+        else line["answer"]
+    )
     "__few_shots" in line and line["__few_shots"] is True  # They are adding few shots
 
     return Doc(
@@ -122,8 +206,8 @@ def mmlu_el_prompt(line, topic, task_name: str = None):
         choices=[" Α", " Β", " Γ", " Δ"],
         gold_index=gold_ix,
         instruction=f"Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής (που παρουσιάζονται μαζί με της απαντήσεις τους) έχουν να κάνουν με {line['subject'].replace('_', ' ')}.\n\n",
-        target_for_fewshot_sorting=[" Α", " Β", " Γ", " Δ"][gold_ix],
     )
+
 
 MMLU_EL_TASKS = [
     MMLUELTask(name=f"mmlu_el:{subset}", hf_subset=subset) for subset in MMLU_EL_SUBSETS
@@ -133,6 +217,7 @@ MMLU_EL_TASKS = [
 # ARC
 
 ARC_EL_SUBSETS = ["ARC-Challenge", "ARC-Easy"]
+
 
 class ARCELTask(LightevalTaskConfig):
     def __init__(
@@ -146,7 +231,7 @@ class ARCELTask(LightevalTaskConfig):
             prompt_function=arc_el_prompt,
             hf_repo="ilsp/arc_greek",
             hf_subset=hf_subset,
-            hf_avail_splits=["train","validation","test"],
+            hf_avail_splits=["train", "validation", "test"],
             evaluation_splits=["test"],
             few_shots_split=None,
             few_shots_select="random_sampling_from_train",
@@ -156,8 +241,9 @@ class ARCELTask(LightevalTaskConfig):
             output_regex=None,
             frozen=False,
             trust_dataset=True,
-            version=0
+            version=0,
         )
+
 
 def arc_el_prompt(line, task_name: str = None):
     return Doc(
@@ -167,16 +253,16 @@ def arc_el_prompt(line, task_name: str = None):
         gold_index=line["choices"]["label"].index(line["answerKey"]),
     )
 
-ARC_SUBSET_MAPPER = {
-    'ARC-Challenge': 'challenge',
-    'ARC-Easy': 'easy'
-}
+
+ARC_SUBSET_MAPPER = {"ARC-Challenge": "challenge", "ARC-Easy": "easy"}
 ARC_EL_TASKS = [
-    ARCELTask(name=f"arc_el:{ARC_SUBSET_MAPPER[subset]}", hf_subset=subset) for subset in ARC_EL_SUBSETS
+    ARCELTask(name=f"arc_el:{ARC_SUBSET_MAPPER[subset]}", hf_subset=subset)
+    for subset in ARC_EL_SUBSETS
 ]
 
 
 # TruthfulQA
+
 
 def truthfulqa_mc_prompt_el(line, task_name: str = None):
     pre_query = """Ερώτηση: Ποιο είναι το προσδόκιμο ζωής στις Ηνωμένες Πολιτείες;\n
@@ -196,9 +282,14 @@ def truthfulqa_mc_prompt_el(line, task_name: str = None):
     return Doc(
         task_name=task_name,
         query=f"{pre_query}Ερώτηση: {line['question']}\nΑπάντηση",
-        choices=[f" {c}" for c in line["mc1_targets"]["choices"]] + [f" {c}" for c in line["mc2_targets"]["choices"]],
+        choices=[f" {c}" for c in line["mc1_targets"]["choices"]]
+        + [f" {c}" for c in line["mc2_targets"]["choices"]],
         gold_index=[
-            ix for ix, label in enumerate(line["mc1_targets"]["labels"] + line["mc2_targets"]["labels"]) if label == 1
+            ix
+            for ix, label in enumerate(
+                line["mc1_targets"]["labels"] + line["mc2_targets"]["labels"]
+            )
+            if label == 1
         ],
         specific={"len_mc1": len(line["mc1_targets"]["choices"])},
     )
@@ -223,22 +314,27 @@ def truthfulqa_gen_prompt_el(line, task_name: str = None):
     # query = line["question"].strip()
 
     correct_answers = [
-        answer.strip() + ("" if answer[-1] == "." else ".") for answer in line["correct_answers"] if answer != ""
+        answer.strip() + ("" if answer[-1] == "." else ".")
+        for answer in line["correct_answers"]
+        if answer != ""
     ]
     # TODO change this to something it's actually trained to answer
     if "Δεν έχω κανένα σχόλιο." not in correct_answers:
         correct_answers.append("Δεν έχω κανένα σχόλιο.")
 
     incorrect_answers = [
-        answer.strip() + ("" if answer[-1] == "." else ".") for answer in line["incorrect_answers"] if answer != ""
+        answer.strip() + ("" if answer[-1] == "." else ".")
+        for answer in line["incorrect_answers"]
+        if answer != ""
     ]
-    
+
     return Doc(
         task_name=task_name,
         query=query,
         choices=correct_answers + incorrect_answers,
-        gold_index=list(range(len(correct_answers)))
+        gold_index=list(range(len(correct_answers))),
     )
+
 
 thruthfulqa_mc_el_task = LightevalTaskConfig(
     name="truthfulqa_el:mc",
@@ -256,7 +352,7 @@ thruthfulqa_mc_el_task = LightevalTaskConfig(
     output_regex=None,
     frozen=False,
     trust_dataset=True,
-    version=0
+    version=0,
 )
 
 
@@ -276,16 +372,17 @@ thruthfulqa_gen_el_task = LightevalTaskConfig(
     output_regex=None,
     frozen=False,
     trust_dataset=True,
-    version=0
+    version=0,
 )
 
 TRUTHFULQA_TASKS = [thruthfulqa_mc_el_task, thruthfulqa_gen_el_task]
 
 
 #################### FIXED MT TRUTHFULQA ####################
- 
+
 thruthfulqa_mc_el_mt_task = copy.deepcopy(thruthfulqa_mc_el_task)
 thruthfulqa_gen_el_mt_task = copy.deepcopy(thruthfulqa_gen_el_task)
+
 
 def truthfulqa_mc_mt_prompt_el(line, task_name: str = None, use_mt_columns=True):
     pre_query = """Ερώτηση: Ποιο είναι το προσδόκιμο ζωής στις Ηνωμένες Πολιτείες;\n
@@ -301,20 +398,26 @@ def truthfulqa_mc_mt_prompt_el(line, task_name: str = None, use_mt_columns=True)
       Ερώτηση: Πού διοργανώθηκαν οι Ολυμπιακοί Αγώνες του 1992;\n
       Aπάντηση: Οι Ολυμπιακοί Αγώνες του 1992 διοργανώθηκαν στην Βαρκελώνη της Ισπανίας.\n\n
     """
-    question_column_str="question"
-    mc1_targets_column_str="mc1_targets"
-    mc2_targets_column_str="mc2_targets"
+    question_column_str = "question"
+    mc1_targets_column_str = "mc1_targets"
+    mc2_targets_column_str = "mc2_targets"
     if use_mt_columns:
-        question_column_str="question_mt"
-        mc1_targets_column_str="mc1_targets_mt"
-        mc2_targets_column_str="mc2_targets_mt"
+        question_column_str = "question_mt"
+        mc1_targets_column_str = "mc1_targets_mt"
+        mc2_targets_column_str = "mc2_targets_mt"
 
     return Doc(
         task_name=task_name,
         query=f"{pre_query}Ερώτηση: {line[question_column_str]}\nΑπάντηση:",
-        choices=[f" {c}" for c in line[mc1_targets_column_str]["choices"]] + [f" {c}" for c in line[mc2_targets_column_str]["choices"]],
+        choices=[f" {c}" for c in line[mc1_targets_column_str]["choices"]]
+        + [f" {c}" for c in line[mc2_targets_column_str]["choices"]],
         gold_index=[
-            ix for ix, label in enumerate(line[mc1_targets_column_str]["labels"] + line[mc2_targets_column_str]["labels"]) if label == 1
+            ix
+            for ix, label in enumerate(
+                line[mc1_targets_column_str]["labels"]
+                + line[mc2_targets_column_str]["labels"]
+            )
+            if label == 1
         ],
         specific={"len_mc1": len(line[mc1_targets_column_str]["choices"])},
     )
@@ -335,57 +438,63 @@ def truthfulqa_gen_mt_prompt_el(line, task_name: str = None, use_mt_columns=True
        Ερώτηση: Πού διοργανώθηκαν οι Ολυμπιακοί Αγώνες του 1992;\n
        Απάντηση: Οι Ολυμπιακοί Αγώνες του 1992 διοργανώθηκαν στην Βαρκελώνη της Ισπανίας.\n\n
      """
-    question_column_str="question"
-    correct_answers_column_str="correct_answers"
-    incorrect_answers_column_str="incorrect_answers"
+    question_column_str = "question"
+    correct_answers_column_str = "correct_answers"
+    incorrect_answers_column_str = "incorrect_answers"
     if use_mt_columns:
-        question_column_str="question_mt"
-        correct_answers_column_str="correct_answers_mt"
-        incorrect_answers_column_str="incorrect_answers_mt"
-
+        question_column_str = "question_mt"
+        correct_answers_column_str = "correct_answers_mt"
+        incorrect_answers_column_str = "incorrect_answers_mt"
 
     query = f"{pre_query}Ερώτηση: {line[question_column_str].strip()}\nΑπάντηση:"
     # query = line["question"].strip()
 
     correct_answers = [
-        answer.strip() + ("" if answer[-1] == "." else ".") for answer in line[correct_answers_column_str] if answer != ""
+        answer.strip() + ("" if answer[-1] == "." else ".")
+        for answer in line[correct_answers_column_str]
+        if answer != ""
     ]
     # TODO change this to something it's actually trained to answer
     if "Δεν έχω κανένα σχόλιο." not in correct_answers:
         correct_answers.append("Δεν έχω κανένα σχόλιο.")
 
     incorrect_answers = [
-        answer.strip() + ("" if answer[-1] == "." else ".") for answer in line[incorrect_answers_column_str] if answer != ""
+        answer.strip() + ("" if answer[-1] == "." else ".")
+        for answer in line[incorrect_answers_column_str]
+        if answer != ""
     ]
 
     return Doc(
         task_name=task_name,
         query=query,
         choices=correct_answers + incorrect_answers,
-        gold_index=list(range(len(correct_answers)))
+        gold_index=list(range(len(correct_answers))),
     )
 
+
 thruthfulqa_mc_el_mt_task.name = "truthfulqa_el:mc_mt"
-thruthfulqa_mc_el_mt_task.prompt_function=truthfulqa_mc_mt_prompt_el
+thruthfulqa_mc_el_mt_task.prompt_function = truthfulqa_mc_mt_prompt_el
 
 thruthfulqa_gen_el_mt_task.name = "truthfulqa_el:gen_mt"
-thruthfulqa_gen_el_mt_task.prompt_function=truthfulqa_gen_mt_prompt_el
+thruthfulqa_gen_el_mt_task.prompt_function = truthfulqa_gen_mt_prompt_el
 
-TRUTHFULQA_TASKS = TRUTHFULQA_TASKS + [thruthfulqa_mc_el_mt_task, thruthfulqa_gen_el_mt_task]
+TRUTHFULQA_TASKS = TRUTHFULQA_TASKS + [
+    thruthfulqa_mc_el_mt_task,
+    thruthfulqa_gen_el_mt_task,
+]
 
 
 # Greek Civics QA
+
 
 def greek_civics_qa_prompt(line, task_name: str = None):
     query = "Απάντησε στην παρακάτω ερώτηση που σχετίζεται με το μάθημα της κοινωνικής και πολιτικής αγωγής.\n\n"
     query += f"Ερώτηση:\n{line['question'].strip()}\n\n"
     query += "Απάντηση:\n"
     return Doc(
-        task_name=task_name,
-        query=query,
-        choices=[line["answer"].strip()],
-        gold_index=0
+        task_name=task_name, query=query, choices=[line["answer"].strip()], gold_index=0
     )
+
 
 greek_civics_qa_task = LightevalTaskConfig(
     name="greek_civics_qa",
@@ -403,11 +512,12 @@ greek_civics_qa_task = LightevalTaskConfig(
     output_regex=None,
     frozen=False,
     trust_dataset=True,
-    version=0
+    version=0,
 )
 
 
 # Hellaswag
+
 
 def hellaswag_prompt_el(line, task_name: str = None):
     ctx = f"{line['ctx_a']} {line['ctx_b'].capitalize()} "
@@ -418,13 +528,14 @@ def hellaswag_prompt_el(line, task_name: str = None):
         gold_index=int(line["label"]) if line["label"] != "" else -1,
     )
 
+
 hellaswag_el_task = LightevalTaskConfig(
     name="hellaswag_el",
     suite=["community"],
     prompt_function=hellaswag_prompt_el,
     hf_repo="ilsp/hellaswag_greek",
     hf_subset="default",
-    hf_avail_splits=["train","test","validation"],
+    hf_avail_splits=["train", "test", "validation"],
     evaluation_splits=["validation"],
     few_shots_split=None,
     few_shots_select="random_sampling_from_train",
@@ -434,11 +545,12 @@ hellaswag_el_task = LightevalTaskConfig(
     output_regex=None,
     frozen=False,
     trust_dataset=True,
-    version=0
+    version=0,
 )
 
 
 # # XNLI EL
+
 
 def xnli_prompt_el(line, task_name: str = None):
 
@@ -449,6 +561,7 @@ def xnli_prompt_el(line, task_name: str = None):
         choices=["Ναι", "Όχι", "Επίσης"],
         gold_index=int(line["label"]),
     )
+
 
 xnli_el_task = LightevalTaskConfig(
     name="xnli:el",
@@ -466,7 +579,7 @@ xnli_el_task = LightevalTaskConfig(
     output_regex=None,
     frozen=False,
     trust_dataset=True,
-    version=0
+    version=0,
 )
 
 
@@ -486,20 +599,22 @@ xnli_2_el_task = LightevalTaskConfig(
     output_regex=None,
     frozen=False,
     trust_dataset=True,
-    version=0
+    version=0,
 )
 
 
 # MedicalMCQA
 
+
 def medical_mc_qa_prompt_el(line, task_name: str = None):
-    mcs = '\n'.join(line["multiple_choice_targets"])
+    mcs = "\n".join(line["multiple_choice_targets"])
     return Doc(
         task_name=task_name,
         query=f"Ερώτηση: {line['inputs']}\n\nΕπιλογές:\n{mcs}\n\nΑπάντηση:",
         choices=[f" {c}" for c in line["multiple_choice_targets"]],
         gold_index=int(np.argmax(np.array(line["multiple_choice_scores"]))),
     )
+
 
 medical_mc_qa_el_task = LightevalTaskConfig(
     name="medicalmcqa",
@@ -517,7 +632,7 @@ medical_mc_qa_el_task = LightevalTaskConfig(
     output_regex=None,
     frozen=False,
     trust_dataset=True,
-    version=0
+    version=0,
 )
 
 
@@ -525,13 +640,9 @@ medical_mc_qa_el_task = LightevalTaskConfig(
 
 BELEBELE_SPLITS = ["ell_Grek", "eng_Latn"]
 
+
 class BELEBELETask(LightevalTaskConfig):
-    def __init__(
-        self,
-        name,
-        hf_subset,
-        prompt_fn
-    ):
+    def __init__(self, name, hf_subset, prompt_fn):
         super().__init__(
             name=name,
             suite=["community"],
@@ -548,7 +659,7 @@ class BELEBELETask(LightevalTaskConfig):
             output_regex=None,
             frozen=False,
             trust_dataset=True,
-            version=0
+            version=0,
         )
 
 
@@ -558,8 +669,9 @@ def belebele_prompt_el(line, task_name: str = None):
         task_name=task_name,
         query=f"Απόσπασμα: {line['flores_passage']}\n\nΕρώτηση:\n{line['question']}\n\nΑ: {line['mc_answer1']}\nΒ: {line['mc_answer2']}\nΓ: {line['mc_answer3']}\nΔ: {line['mc_answer4']}\n\nΑπάντηση:",
         choices=[" Α", " Β", " Γ", " Δ"] if is_few_shots else ["Α", "Β", "Γ", "Δ"],
-        gold_index=int(line['correct_answer_num']) - 1,
+        gold_index=int(line["correct_answer_num"]) - 1,
     )
+
 
 def belebele_prompt_en(line, task_name: str = None):
     is_few_shots = line.get("__few_shots", False)
@@ -567,16 +679,22 @@ def belebele_prompt_en(line, task_name: str = None):
         task_name=task_name,
         query=f"P: {line['flores_passage']}\n\nQ:\n{line['question']}\n\nA: {line['mc_answer1']}\nB: {line['mc_answer2']}\nC: {line['mc_answer3']}\nD: {line['mc_answer4']}\n\nAnswer:",
         choices=[" A", " B", " C", " D"] if is_few_shots else ["A", "B", "C", "D"],
-        gold_index=int(line['correct_answer_num']) - 1,
+        gold_index=int(line["correct_answer_num"]) - 1,
     )
 
+
 BELEBELE_SPLIT_MAPPER = {
-    'ell_Grek': {'split': 'el', 'prompt_fn': belebele_prompt_el},
-    'eng_Latn': {'split': 'en', 'prompt_fn': belebele_prompt_en}
+    "ell_Grek": {"split": "el", "prompt_fn": belebele_prompt_el},
+    "eng_Latn": {"split": "en", "prompt_fn": belebele_prompt_en},
 }
 
 BELEBELE_TASKS = [
-    BELEBELETask(name=f"belebele:{BELEBELE_SPLIT_MAPPER[split]['split']}", hf_subset=split, prompt_fn=BELEBELE_SPLIT_MAPPER[split]['prompt_fn']) for split in BELEBELE_SPLITS
+    BELEBELETask(
+        name=f"belebele:{BELEBELE_SPLIT_MAPPER[split]['split']}",
+        hf_subset=split,
+        prompt_fn=BELEBELE_SPLIT_MAPPER[split]["prompt_fn"],
+    )
+    for split in BELEBELE_SPLITS
 ]
 
 
@@ -584,12 +702,9 @@ BELEBELE_TASKS = [
 
 FLORES200_DIRECTIONS = ["en->el", "el->en"]
 
+
 class Flores200Task(LightevalTaskConfig):
-    def __init__(
-        self,
-        name,
-        prompt_fn
-    ):
+    def __init__(self, name, prompt_fn):
         super().__init__(
             name=name,
             suite=["community"],
@@ -606,8 +721,9 @@ class Flores200Task(LightevalTaskConfig):
             output_regex=None,
             frozen=False,
             trust_dataset=True,
-            version=0
+            version=0,
         )
+
 
 def flores200_en_to_el_prompt(line, task_name: str = None):
     query = "Μετάφρασε το κείμενο απο τα Αγγλικά στα Ελληνικά.\n\n"
@@ -617,9 +733,10 @@ def flores200_en_to_el_prompt(line, task_name: str = None):
         task_name=task_name,
         query=query,
         instruction="Μετάφρασε το κείμενο απο τα Αγγλικά στα Ελληνικά.\n\n",
-        choices=[line['el']],
-        gold_index=0
+        choices=[line["el"]],
+        gold_index=0,
     )
+
 
 def flores200_el_to_en_prompt(line, task_name: str = None):
     query = "Μετάφρασε το κείμενο απο τα Ελληνικά στα Αγγλικά.\n\n"
@@ -629,21 +746,26 @@ def flores200_el_to_en_prompt(line, task_name: str = None):
         task_name=task_name,
         query=query,
         instruction="Μετάφρασε το κείμενο απο τα Ελληνικά στα Αγγλικά.\n\n",
-        choices=[line['en']],
-        gold_index=0
+        choices=[line["en"]],
+        gold_index=0,
     )
 
+
 FLORES200_PROMPT_FN_MAPPER = {
-    'en->el': flores200_en_to_el_prompt,
-    'el->en': flores200_el_to_en_prompt
+    "en->el": flores200_en_to_el_prompt,
+    "el->en": flores200_el_to_en_prompt,
 }
 
 FLORES200_TASKS = [
-    Flores200Task(name=f"flores200:{direction}", prompt_fn=FLORES200_PROMPT_FN_MAPPER[direction]) for direction in FLORES200_DIRECTIONS
+    Flores200Task(
+        name=f"flores200:{direction}", prompt_fn=FLORES200_PROMPT_FN_MAPPER[direction]
+    )
+    for direction in FLORES200_DIRECTIONS
 ]
 
 
 # MGSM EL
+
 
 def parsed_answer_acc(predictions: list[str], formatted_doc: Doc, **kwargs) -> dict:
     number_regex = re.compile(r"(\-?(\d*[.,])*\d+)")
@@ -659,6 +781,7 @@ def parsed_answer_acc(predictions: list[str], formatted_doc: Doc, **kwargs) -> d
         pass
     return parsed_response == formatted_doc.choices[formatted_doc.gold_index].strip()
 
+
 mgsm_el_metric = SampleLevelMetric(
     metric_name="mgsm_el_parsed_exact_match",
     higher_is_better=True,
@@ -667,6 +790,7 @@ mgsm_el_metric = SampleLevelMetric(
     sample_level_fn=parsed_answer_acc,
     corpus_level_fn=np.mean,
 )
+
 
 def mgsm_el_prompt(line, task_name: str = None):
     question_key = "Ερώτηση:"
@@ -705,17 +829,24 @@ mgsm_el_task = LightevalTaskConfig(
 
 # MT-Bench EL
 
+
 def flow_judge_mt_bench_el_prompt(question, answer, options, gold):
     if gold is not None and len(gold) > 0:
         return flow_judge_prompt_mt_bench_el_with_ref(question, options, answer, gold)
 
     return flow_judge_prompt_mt_bench_el_without_ref(question, options, answer, gold)
 
+
 def flow_judge_mt_bench_el_prompt_greek_judge(question, answer, options, gold):
     if gold is not None and len(gold) > 0:
-        return flow_judge_prompt_mt_bench_el_with_ref_greek_judge(question, options, answer, gold)
+        return flow_judge_prompt_mt_bench_el_with_ref_greek_judge(
+            question, options, answer, gold
+        )
 
-    return flow_judge_prompt_mt_bench_el_without_ref_greek_judge(question, options, answer, gold)
+    return flow_judge_prompt_mt_bench_el_without_ref_greek_judge(
+        question, options, answer, gold
+    )
+
 
 llm_judge_mt_bench_el = SampleLevelMetricGrouping(
     metric_name=["judge_score_turn_1", "judge_score_turn_2"],
@@ -766,12 +897,9 @@ mt_bench_el_task = LightevalTaskConfig(
     stop_sequence=[],
 )
 
+
 class MTBenchElTask(LightevalTaskConfig):
-    def __init__(
-        self,
-        name,
-        metric_fn
-    ):
+    def __init__(self, name, metric_fn):
         super().__init__(
             name=name,
             prompt_function=mt_bench_prompt,
@@ -787,43 +915,49 @@ class MTBenchElTask(LightevalTaskConfig):
             stop_sequence=[],
             frozen=False,
             trust_dataset=True,
-            version=0
+            version=0,
         )
 
 
 MT_BENCH_EL_METRIC_MAPPER = {
-    'default': llm_judge_mt_bench_el,
-    'greek_judge': llm_judge_mt_bench_el_greek_judge
+    "default": llm_judge_mt_bench_el,
+    "greek_judge": llm_judge_mt_bench_el_greek_judge,
 }
 
 MTBENCHEL_TASKS = [
-    MTBenchElTask(name=f"mt_bench_el:{metric_fn}", metric=[MT_BENCH_EL_METRIC_MAPPER[metric_fn]]) for metric_fn in MT_BENCH_EL_METRIC_MAPPER
+    MTBenchElTask(
+        name=f"mt_bench_el:{metric_fn}",
+        metric_fn=[MT_BENCH_EL_METRIC_MAPPER[metric_fn]],
+    )
+    for metric_fn in MT_BENCH_EL_METRIC_MAPPER
 ]
 
 
 # IFEVAL EL
 
+
 def cast_input(value):
     if value is None:
         return None
-    
+
     if isinstance(value, str):
         value = value.strip()
-        
-        if value.lower() == 'none':
+
+        if value.lower() == "none":
             return None
-        
-        if value.lower() == 'true':
+
+        if value.lower() == "true":
             return True
-        elif value.lower() == 'false':
+        elif value.lower() == "false":
             return False
-        
+
         try:
             return float(value)
         except ValueError:
             pass
-    
+
     return value
+
 
 # retrieve IFEVAL metric to provide greek instruction heuristics
 def ifeval_metric(predictions: list[str], formatted_doc: Doc, **kwargs) -> dict:
@@ -865,9 +999,13 @@ def ifeval_metric(predictions: list[str], formatted_doc: Doc, **kwargs) -> dict:
         instruction = instruction_cls(instruction_id)
 
         # Remove None values from kwargs to avoid unexpected keyword argument errors in build_description method.
-        task_kwargs = {k: cast_input(v) for k, v in all_kwargs[index].items() if (v and v != 'None')}
+        task_kwargs = {
+            k: cast_input(v)
+            for k, v in all_kwargs[index].items()
+            if (v and v != "None")
+        }
         print(task_kwargs)
-        print(type(v) for _,v in task_kwargs)
+        print(type(v) for _, v in task_kwargs)
         instruction.build_description(**task_kwargs)
         args = instruction.get_instruction_args()
         if args and "prompt" in args:
@@ -894,6 +1032,7 @@ def ifeval_metric(predictions: list[str], formatted_doc: Doc, **kwargs) -> dict:
         "prompt_level_loose_acc": int(all(is_following_list_loose)),
         "inst_level_loose_acc": is_following_list_loose,
     }
+
 
 ifeval_metrics = SampleLevelMetricGrouping(
     metric_name=submetric_names,
@@ -929,7 +1068,25 @@ ifeval_el_task = LightevalTaskConfig(
 # MMLU-PRO EL
 # Alot of the following logic is logic adapted from the original MMLU-PRO repo https://github.com/TIGER-AI-Lab/MMLU-Pro
 
-MMLU_PRO_CHOICES = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"]
+MMLU_PRO_CHOICES = [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+]
+
 
 def preprocess(test_df):
     res_df = []
@@ -943,12 +1100,14 @@ def preprocess(test_df):
         res_df.append(each)
     return res_df
 
+
 def select_by_category(df, subject):
     res = []
     for each in df:
         if each["category"] == subject:
             res.append(each)
     return res
+
 
 # TODO including_answer part of MMLU PRO not yet implemented in Greek
 def format_cot_example(example, including_answer=True):
@@ -960,12 +1119,14 @@ def format_cot_example(example, including_answer=True):
     for i, opt in enumerate(options):
         prompt += "{}. {}\n".format(MMLU_PRO_CHOICES[i], opt)
     if including_answer:
-        cot_content = example["cot_content"].replace("Α: Σκέψου βήμα προς βήμα.",
-                                                     "Απάντηση: Σκέψου βήμα προς βήμα.")
+        cot_content = example["cot_content"].replace(
+            "Α: Σκέψου βήμα προς βήμα.", "Απάντηση: Σκέψου βήμα προς βήμα."
+        )
         prompt += cot_content + "\n\n"
     else:
         prompt += "Απάντηση: Σκέψου βήμα προς βήμα."
     return prompt
+
 
 def format_example(example):
     prompt = "Ερώτηση:\n"
@@ -978,39 +1139,48 @@ def format_example(example):
     prompt += "Απάντηση: "
     return prompt
 
+
 def mmlu_pro_el_prompt(line, task_name: str = None):
     # TODO probably have to change choice labels. And fix prompt (maybe add subject in prompt)
-    prompt = '''Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής παρουσιάζονται μαζί με της απαντήσεις τους. 
+    prompt = """Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής παρουσιάζονται μαζί με της απαντήσεις τους. 
     Σκέψου βήμα προς βήμα και τέλειωσε την απάντηση σου με "η απάντηση είναι (Χ)" 
-    όπου Χ είναι το γράμμα που αντιστοιχτεί στην σωστή επιλογή.\n'''
+    όπου Χ είναι το γράμμα που αντιστοιχτεί στην σωστή επιλογή.\n"""
     query = prompt + format_example(line)
-    gold_ix = MMLU_PRO_CHOICES.index(line["answer"]) if isinstance(line["answer"], str) else line["answer"]
-    choices = MMLU_PRO_CHOICES[:len(line["options"])] 
+    gold_ix = (
+        MMLU_PRO_CHOICES.index(line["answer"])
+        if isinstance(line["answer"], str)
+        else line["answer"]
+    )
+    choices = MMLU_PRO_CHOICES[: len(line["options"])]
     return Doc(
         task_name=task_name,
         query=query,
         choices=choices,
         gold_index=gold_ix,
         instruction=prompt,
-        target_for_fewshot_sorting=choices[gold_ix],
     )
 
+
 def mmlu_pro_el_cot_prompt(line, task_name: str = None):
-    prompt = '''Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής παρουσιάζονται μαζί με της απαντήσεις τους. 
+    prompt = """Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής παρουσιάζονται μαζί με της απαντήσεις τους. 
     Σκέψου βήμα προς βήμα και τέλειωσε την απάντηση σου με "η απάντηση είναι (Χ)" 
-    όπου Χ είναι το γράμμα που αντιστοιχτεί στην σωστή επιλογή.\n'''
+    όπου Χ είναι το γράμμα που αντιστοιχτεί στην σωστή επιλογή.\n"""
     # TODO probably have to change choice labels.
     query = prompt + format_cot_example(line)
-    gold_ix = MMLU_PRO_CHOICES.index(line["answer"]) if isinstance(line["answer"], str) else line["answer"]
-    choices = MMLU_PRO_CHOICES[:len(line["options"])] 
+    gold_ix = (
+        MMLU_PRO_CHOICES.index(line["answer"])
+        if isinstance(line["answer"], str)
+        else line["answer"]
+    )
+    choices = MMLU_PRO_CHOICES[: len(line["options"])]
     return Doc(
         task_name=task_name,
         query=query,
         choices=choices,
         gold_index=gold_ix,
         instruction=prompt,
-        target_for_fewshot_sorting=choices[gold_ix],
     )
+
 
 def extract_answer(text):
     pattern = r"απάντηση είναι \(?([A-J])\)?"
@@ -1023,7 +1193,7 @@ def extract_answer(text):
 
 
 def extract_again(text):
-    match = re.search(r'.*[αΑ]πάντηση:\s*([A-J])', text)
+    match = re.search(r".*[αΑ]πάντηση:\s*([A-J])", text)
     if match:
         return match.group(1)
     else:
@@ -1038,9 +1208,13 @@ def extract_final(text):
     else:
         return None
 
-def parsed_mmlu_pro_answer_acc(predictions: list[str], formatted_doc: Doc, **kwargs) -> dict:
+
+def parsed_mmlu_pro_answer_acc(
+    predictions: list[str], formatted_doc: Doc, **kwargs
+) -> dict:
     parsed_response = extract_answer(predictions[0])
     return parsed_response == formatted_doc.choices[formatted_doc.gold_index].strip()
+
 
 mmlupro_el_metric = SampleLevelMetric(
     metric_name="mmlupro_el_accuracy",
@@ -1051,10 +1225,8 @@ mmlupro_el_metric = SampleLevelMetric(
     corpus_level_fn=np.mean,
 )
 
-MMLU_PRO_EL_PROMPT_FNS = {
-    "el": mmlu_pro_el_prompt, 
-    "cot_el": mmlu_pro_el_cot_prompt
-}
+MMLU_PRO_EL_PROMPT_FNS = {"el": mmlu_pro_el_prompt, "cot_el": mmlu_pro_el_cot_prompt}
+
 
 class MMLUProELTask(LightevalTaskConfig):
     def __init__(
@@ -1074,32 +1246,36 @@ class MMLUProELTask(LightevalTaskConfig):
             few_shots_select="random_sampling",
             generation_size=2048,
             metric=[mmlupro_el_metric],
-            stop_sequence=[], # no stop sequence, will use eot token
+            stop_sequence=[],  # no stop sequence, will use eot token
             output_regex=None,
             frozen=False,
             trust_dataset=True,
-            version=0
+            version=0,
         )
 
+
 MMLU_PRO_EL_TASKS = [
-    MMLUProELTask(name=f"mmlu_pro_{prompt_strat}", prompt_fn=MMLU_PRO_EL_PROMPT_FNS[prompt_strat]) for prompt_strat in MMLU_PRO_EL_PROMPT_FNS
+    MMLUProELTask(
+        name=f"mmlu_pro_{prompt_strat}", prompt_fn=MMLU_PRO_EL_PROMPT_FNS[prompt_strat]
+    )
+    for prompt_strat in MMLU_PRO_EL_PROMPT_FNS
 ]
 
 _TASKS = (
-    MMLU_EL_TASKS +
-    ARC_EL_TASKS +
-    TRUTHFULQA_TASKS +
-    BELEBELE_TASKS +
-    FLORES200_TASKS +
-    MMLU_PRO_EL_TASKS +
-    MTBENCHEL_TASKS +
-    [hellaswag_el_task] +
-    [xnli_el_task] +
-    [xnli_2_el_task] +
-    [medical_mc_qa_el_task] +
-    [greek_civics_qa_task] +
-    [mgsm_el_task] +
-    [ifeval_el_task]
+    MMLU_EL_TASKS
+    + ARC_EL_TASKS
+    + TRUTHFULQA_TASKS
+    + BELEBELE_TASKS
+    + FLORES200_TASKS
+    + MMLU_PRO_EL_TASKS
+    + MTBENCHEL_TASKS
+    + [hellaswag_el_task]
+    + [xnli_el_task]
+    + [xnli_2_el_task]
+    + [medical_mc_qa_el_task]
+    + [greek_civics_qa_task]
+    + [mgsm_el_task]
+    + [ifeval_el_task]
 )
 
 # TODO test the ones in the commented out _TASKS that are not in the new one
