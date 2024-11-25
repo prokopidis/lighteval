@@ -122,7 +122,6 @@ def mmlu_el_prompt(line, topic, task_name: str = None):
         choices=[" Α", " Β", " Γ", " Δ"],
         gold_index=gold_ix,
         instruction=f"Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής (που παρουσιάζονται μαζί με της απαντήσεις τους) έχουν να κάνουν με {line['subject'].replace('_', ' ')}.\n\n",
-        target_for_fewshot_sorting=[" Α", " Β", " Γ", " Δ"][gold_ix],
     )
 
 MMLU_EL_TASKS = [
@@ -991,8 +990,7 @@ def mmlu_pro_el_prompt(line, task_name: str = None):
         query=query,
         choices=choices,
         gold_index=gold_ix,
-        instruction=prompt,
-        target_for_fewshot_sorting=choices[gold_ix],
+        instruction=prompt
     )
 
 def mmlu_pro_el_cot_prompt(line, task_name: str = None):
@@ -1009,7 +1007,6 @@ def mmlu_pro_el_cot_prompt(line, task_name: str = None):
         choices=choices,
         gold_index=gold_ix,
         instruction=prompt,
-        target_for_fewshot_sorting=choices[gold_ix],
     )
 
 def extract_answer(text):
