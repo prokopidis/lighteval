@@ -108,8 +108,12 @@ class OpenAIClient(LightevalModel):
                 return response
             except Exception as e:
                 hlog_warn(f"{type(e), e}")
-                time.sleep(self.API_RETRY_SLEEP)
-                self.API_RETRY_SLEEP = self.API_RETRY_SLEEP**self.API_RETRY_MULTIPLIER
+                try:
+                    time.sleep(self.API_RETRY_SLEEP)
+                    self.API_RETRY_SLEEP = self.API_RETRY_SLEEP**self.API_RETRY_MULTIPLIER
+                except OverflowError:
+                    hlog_warn("API retry delay too large; possible misconfiguration or extended downtime.")
+                    raise Exception("API is offline or unreachable.")
         raise Exception("Failed to get response from the API")
 
     def __call_api_parallel(
