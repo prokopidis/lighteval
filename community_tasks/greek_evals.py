@@ -797,7 +797,7 @@ MT_BENCH_EL_METRIC_MAPPER = {
 }
 
 MTBENCHEL_TASKS = [
-    MTBenchElTask(name=f"mt_bench_el:{metric_fn}", metric=[MT_BENCH_EL_METRIC_MAPPER[metric_fn]]) for metric_fn in MT_BENCH_EL_METRIC_MAPPER
+    MTBenchElTask(name=f"mt_bench_el:{metric_fn}", metric_fn=[MT_BENCH_EL_METRIC_MAPPER[metric_fn]]) for metric_fn in MT_BENCH_EL_METRIC_MAPPER
 ]
 
 
