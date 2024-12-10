@@ -79,20 +79,26 @@ huggingface-cli login
 
 Lighteval offers two main entry points for model evaluation:
 
-
-* `lighteval accelerate`: evaluate models on CPU or one or more GPUs using [🤗
-  Accelerate](https://github.com/huggingface/accelerate).
-* `lighteval nanotron`: evaluate models in distributed settings using [⚡️
-  Nanotron](https://github.com/huggingface/nanotron).
+- `lighteval accelerate` : evaluate models on CPU or one or more GPUs using [🤗
+  Accelerate](https://github.com/huggingface/accelerate)
+- `lighteval nanotron`: evaluate models in distributed settings using [⚡️
+  Nanotron](https://github.com/huggingface/nanotron)
+- `lighteval vllm`: evaluate models on one or more GPUs using [🚀
+  VLLM](https://github.com/vllm-project/vllm)
+- `lighteval endpoint`
+    - `inference-endpoint`: evaluate models on one or more GPUs using [🔗
+  Inference Endpoint](https://huggingface.co/inference-endpoints/dedicated)
+    - `tgi`: evaluate models on one or more GPUs using [🔗 Text Generation Inference](https://huggingface.co/docs/text-generation-inference/en/index)
+    - `openai`: evaluate models on one or more GPUs using [🔗 OpenAI API](https://platform.openai.com/)
 
 Here’s a quick command to evaluate using the Accelerate backend:
 
 ```shell
 lighteval accelerate \
-    --model_args "pretrained=gpt2" \
-    --tasks "leaderboard|truthfulqa:mc|0|0" \
-    --override_batch_size 1 \
-    --output_dir="./evals/"
+    "pretrained=gpt2" \
+    "leaderboard|truthfulqa:mc|0|0" \
+    --override-batch-size 1 \
+    --output-dir="./evals/"
 ```
 
 ### OpenAI and LiteLLM-proxy requests
@@ -101,15 +107,15 @@ To evaluate an OpenAI model, e.g., `gpt-3.5-turbo`, make sure you've added a wor
 
 ```shell
 lighteval accelerate \
-      --model_args "openai,model=gpt-3.5-turbo" \
-      --tasks "community|mmlu_pro_cot_el|0|0" \
-      --override_batch_size 1  \
-      --output_dir="./evals/" \
-      --custom_tasks "./community_tasks/greek_evals.py" \
-      --save_details
+      "openai,model=gpt-3.5-turbo" \
+      "community|mmlu_pro_cot_el|0|0" \
+      --override-batch-size 1  \
+      --output-dir="./evals/" \
+      --custom-tasks "./community_tasks/greek_evals.py" \
+      --save-details
 ```
 
-You can optionally add the `--max_sample 10` flag for quick testing. This will limit the run to only 10 benchmark rows.
+You can optionally add the `--max-samples 10` flag for quick testing. This will limit the run to only 10 benchmark rows.
 
 ### HF model requests
 
@@ -120,12 +126,12 @@ export ID="ilsp/Meltemi-7B-Instruct-v1.5"
 export EVAL_OUTPUTS_PATH="/path/to/eval/outputs"
 
 accelerate launch --multi_gpu --num_processes=4 run_evals_accelerate.py \
-      --model_args="pretrained=${ID},model_parallel=True" \
+      --model-args="pretrained=${ID},model_parallel=True" \
       --tasks examples/tasks/extended_eval_greek_tasks.txt \
-      --custom_tasks "community_tasks/greek_evals.py" \
-      --override_batch_size 1 \
-      --output_dir="${EVAL_OUTPUTS_PATH}" \
-      --save_details
+      --custom-tasks "community_tasks/greek_evals.py" \
+      --override-batch-size 1 \
+      --output-dir="${EVAL_OUTPUTS_PATH}" \
+      --save-details
 ```
 
 ## 🙏 Acknowledgements

@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import logging
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -30,7 +31,6 @@ from tqdm import tqdm
 from transformers import AutoTokenizer
 
 from lighteval.data import GenerativeTaskDataset, LoglikelihoodDataset
-from lighteval.logging.hierarchical_logger import hlog_warn
 from lighteval.models.abstract_model import LightevalModel
 from lighteval.models.endpoint_model import ModelInfo
 from lighteval.models.model_output import (
@@ -45,6 +45,9 @@ from lighteval.tasks.requests import (
     LoglikelihoodSingleTokenRequest,
 )
 from lighteval.utils.imports import is_openai_available
+
+
+logger = logging.getLogger(__name__)
 
 
 if is_openai_available():
@@ -107,12 +110,12 @@ class OpenAIClient(LightevalModel):
                 )
                 return response
             except Exception as e:
-                hlog_warn(f"{type(e), e}")
+                logger.warning(f"{type(e), e}")
                 try:
                     time.sleep(self.API_RETRY_SLEEP)
                     self.API_RETRY_SLEEP = self.API_RETRY_SLEEP**self.API_RETRY_MULTIPLIER
                 except OverflowError:
-                    hlog_warn("API retry delay too large; possible misconfiguration or extended downtime.")
+                    logger.warning("API retry delay too large; possible misconfiguration or extended downtime.")
                     raise Exception("API is offline or unreachable.")
         raise Exception("Failed to get response from the API")
 
