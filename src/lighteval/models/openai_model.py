@@ -65,7 +65,6 @@ class OpenAIClient(LightevalModel):
 
     def __init__(self, config, env_config) -> None:
         api_key = os.environ["OPENAI_API_KEY"]
-        
         self.litellm_proxy_request = True if config.base_url else False
 
         self.client = OpenAI(api_key=api_key)
@@ -92,14 +91,13 @@ class OpenAIClient(LightevalModel):
         self.pairwise_tokenization = False
 
     def __call_api(self, prompt, return_logits, max_new_tokens, num_samples, logit_bias):
-        
         # TODO check why response_format={"type": "text"} isn't compatible with LiteLLM proxy
         completion_request = self.client.chat.completions.create
         if not self.litellm_proxy_request:
-            completion_request = partial(self.client.chat.completions.create, response_format = {"type":"text"})
+            completion_request = partial(self.client.chat.completions.create, response_format={"type": "text"})
 
         for _ in range(self.API_MAX_RETRY):
-            try:               
+            try:
                 response = completion_request(
                     model=self.model,
                     messages=[{"role": "user", "content": prompt}],

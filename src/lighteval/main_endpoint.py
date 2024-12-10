@@ -46,6 +46,20 @@ def openai(
         str, Argument(help="The model name to evaluate (has to be available through the openai API.")
     ],
     tasks: Annotated[str, Argument(help="Comma-separated list of tasks to evaluate on.")],
+    # === liteLLM-specific ===
+    base_url: Annotated[
+        Optional[str], Option(help="Base URL for liteLLM models.", rich_help_panel="Evaluation Backends")
+    ] = None,
+    tokenizer: Annotated[
+        Optional[str], Option(help="Tokenizer to use for liteLLM models.", rich_help_panel="Evaluation Backends")
+    ] = None,
+    use_chat_template: Annotated[
+        bool,
+        Option(
+            help="Use chat template for LiteLLM evaluation. Cannot use with GPT API.",
+            rich_help_panel=HELP_PANNEL_NAME_4,
+        ),
+    ] = False,
     # === Common parameters ===
     system_prompt: Annotated[
         Optional[str], Option(help="Use system prompt for evaluation.", rich_help_panel=HELP_PANNEL_NAME_4)
@@ -107,7 +121,7 @@ def openai(
     )
 
     parallelism_manager = ParallelismManager.OPENAI
-    model_config = OpenAIModelConfig(model=model_name)
+    model_config = OpenAIModelConfig(model=model_name, base_url=base_url, tokenizer=tokenizer)
 
     pipeline_params = PipelineParameters(
         launcher_type=parallelism_manager,
@@ -118,7 +132,7 @@ def openai(
         override_batch_size=-1,  # Cannot override batch size when using OpenAI
         num_fewshot_seeds=num_fewshot_seeds,
         max_samples=max_samples,
-        use_chat_template=False,  # Cannot use chat template when using OpenAI
+        use_chat_template=use_chat_template,
         system_prompt=system_prompt,
     )
     pipeline = Pipeline(

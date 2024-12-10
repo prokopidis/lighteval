@@ -106,16 +106,32 @@ lighteval accelerate \
 To evaluate an OpenAI model, e.g., `gpt-3.5-turbo`, make sure you've added a working `OPENAI_API_KEY` to your env and run:
 
 ```shell
-lighteval accelerate \
-      "openai,model=gpt-3.5-turbo" \
+lighteval endpoint openai \
+      "gpt-3.5-turbo" \
       "community|mmlu_pro_cot_el|0|0" \
-      --override-batch-size 1  \
       --output-dir="./evals/" \
       --custom-tasks "./community_tasks/greek_evals.py" \
       --save-details
 ```
 
 You can optionally add the `--max-samples 10` flag for quick testing. This will limit the run to only 10 benchmark rows.
+
+To evaluate a non-GPT API, e.g., Meltemi:
+
+```shell
+export OPENAI_API_KEY="<Meltemi-API-key>"
+
+lighteval endpoint openai \
+  "meltemi-instruct-7b-v1" \
+  "community|mmlu_pro_cot_el|0|0" \
+  --base-url="http://ec2-18-218-7-22.us-east-2.compute.amazonaws.com:4000" \
+  --tokenizer="ilsp/Meltemi-7B-Instruct-v1.5" \
+  --max-samples 10 \
+  --output-dir="./evals/" \
+  --custom-tasks "./community_tasks/greek_evals.py" \
+  --use-chat-template \
+  --save-details
+```
 
 ### HF model requests
 

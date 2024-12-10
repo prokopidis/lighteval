@@ -260,7 +260,7 @@ class PromptManager:
             if hasattr(self.model.tokenizer, "apply_chat_template"):
                 return self.model.tokenizer.apply_chat_template(examples, tokenize=False, add_generation_prompt=True)
             else:
-                hlog_warn(
+                logger.warning(
                     f"The tokenizer of type {type(self.model.tokenizer)} does not support "
                     "`apply_chat_template` or equivalent functionality. This is not an issue "
                     "if you're using an API, such as a GPT model. Continuing without it."

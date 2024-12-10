@@ -29,7 +29,7 @@ def flow_judge_prompt_mt_bench_el_without_ref(question, options, answer, gold):
 Your job is to evaluate a task carried out by an AI system powered by a large \
 language model.
 
-You will be provided with the inputs and output of the task in the Greek language, 
+You will be provided with the inputs and output of the task in the Greek language,
 as well as the evaluation criteria and scoring rubric. \
 Your task is to evaluate the output of the AI system based on the evaluation \
 criteria and scoring rubric provided.
@@ -161,7 +161,7 @@ def flow_judge_prompt_mt_bench_el_without_ref_greek_judge(question, options, ans
         {
             "role": "user",
             "content": f"""# ΣΤΟΧΟΣ
-Πρέπει να αξιολογήσεις την εργασία που επιτελεί ένα σύστημα AI το οποίο βασίζεται σε ένα μεγάλο γλωσσικό μοντέλο.   
+Πρέπει να αξιολογήσεις την εργασία που επιτελεί ένα σύστημα AI το οποίο βασίζεται σε ένα μεγάλο γλωσσικό μοντέλο.
 Θα σου δοθούν τα δεδομένα εισόδου και το αποτέλεσμα της εργασίας, καθώς και τα κριτήρια αξιολόγησης και η κλίμακα βαθμολόγησης. Η δική σου εργασία είναι να αξιολογήσεις το αποτέλεσμα του συστήματος AI με βάση τα κριτήρια αξιολόγησης και την κλίμακα βαθμολόγησης που θα παρασχεθεί.
 # ΔΕΔΟΜΕΝΑ ΕΙΣΟΔΟΥ
 Παρακάτω δίνονται τα δεδομένα εισόδου που απαιτούνται για την εκτέλεση της εργασίας:
