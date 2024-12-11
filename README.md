@@ -122,9 +122,9 @@ To evaluate a non-GPT API, e.g., Meltemi:
 export OPENAI_API_KEY="<Meltemi-API-key>"
 
 lighteval endpoint openai \
-  "meltemi-instruct-7b-v1" \
+  "meltemi" \
   "community|mmlu_pro_cot_el|0|0" \
-  --base-url="http://ec2-18-218-7-22.us-east-2.compute.amazonaws.com:4000" \
+  --base-url="http://ec2-3-19-37-251.us-east-2.compute.amazonaws.com:4000" \
   --tokenizer="ilsp/Meltemi-7B-Instruct-v1.5" \
   --max-samples 10 \
   --output-dir="./evals/" \
