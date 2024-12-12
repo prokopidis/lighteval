@@ -27,8 +27,7 @@ Custom evaluation tasks for lighteval
 This file generally creates just a TASKS_TABLE and TASKS_GROUPS which are then imported by LightEval.
 """
 import re
-from dataclasses import asdict
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 import lighteval.tasks.default_prompts as prompt
 from lighteval.metrics import Metrics

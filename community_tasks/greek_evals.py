@@ -42,7 +42,7 @@ from lighteval.metrics.utils.metric_utils import (
     SampleLevelMetric,
     SampleLevelMetricGrouping,
 )
-from lighteval.tasks.default_prompts import hellaswag_preprocess, mgsm
+from lighteval.tasks.default_prompts import hellaswag_preprocess
 from lighteval.tasks.extended.ifeval import (
     ifeval_el_instructions_registry as instructions_registry,
 )
@@ -175,8 +175,6 @@ class MMLUELTask(LightevalTaskConfig):
             generation_size=1,
             metric=[Metrics.loglikelihood_acc],
             stop_sequence=["\n"],
-            output_regex=None,
-            frozen=False,
             trust_dataset=True,
             version=0,
         )
@@ -228,8 +226,6 @@ class ARCELTask(LightevalTaskConfig):
             generation_size=1,
             metric=[Metrics.loglikelihood_acc, Metrics.loglikelihood_acc_norm_nospace],
             stop_sequence=["\n"],
-            output_regex=None,
-            frozen=False,
             trust_dataset=True,
             version=0,
         )
@@ -327,8 +323,6 @@ thruthfulqa_mc_el_task = LightevalTaskConfig(
     generation_size=-1,
     metric=[Metrics.truthfulqa_mc_metrics],
     stop_sequence=["\n"],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -347,8 +341,6 @@ thruthfulqa_gen_el_task = LightevalTaskConfig(
     generation_size=200,
     metric=[Metrics.bleu],
     stop_sequence=["\n"],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -482,8 +474,6 @@ greek_civics_qa_task = LightevalTaskConfig(
     generation_size=100,
     metric=[Metrics.bleu],
     stop_sequence=["\n"],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -515,8 +505,6 @@ hellaswag_el_task = LightevalTaskConfig(
     generation_size=-1,
     metric=[Metrics.loglikelihood_acc, Metrics.loglikelihood_acc_norm],
     stop_sequence=["\n"],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -548,8 +536,6 @@ xnli_el_task = LightevalTaskConfig(
     generation_size=1,
     metric=[loglikelihood_acc_metric(normalization=LogProbTokenNorm())],
     stop_sequence=[],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -568,8 +554,6 @@ xnli_2_el_task = LightevalTaskConfig(
     generation_size=1,
     metric=[loglikelihood_acc_metric(normalization=LogProbTokenNorm())],
     stop_sequence=[],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -601,8 +585,6 @@ medical_mc_qa_el_task = LightevalTaskConfig(
     generation_size=1,
     metric=[Metrics.loglikelihood_acc, Metrics.loglikelihood_acc_norm_nospace],
     stop_sequence=["\n"],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -628,8 +610,6 @@ class BELEBELETask(LightevalTaskConfig):
             generation_size=1,
             metric=[Metrics.loglikelihood_acc, Metrics.loglikelihood_acc_norm_nospace],
             stop_sequence=["\n"],
-            output_regex=None,
-            frozen=False,
             trust_dataset=True,
             version=0,
         )
@@ -690,8 +670,6 @@ class Flores200Task(LightevalTaskConfig):
             generation_size=100,
             metric=[Metrics.bleu],
             stop_sequence=["\n"],
-            output_regex=None,
-            frozen=False,
             trust_dataset=True,
             version=0,
         )
@@ -790,8 +768,6 @@ mgsm_el_task = LightevalTaskConfig(
     generation_size=250,
     metric=[mgsm_el_metric],
     stop_sequence=[],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -879,7 +855,6 @@ class MTBenchElTask(LightevalTaskConfig):
             metric=[metric_fn],
             generation_size=1024,
             stop_sequence=[],
-            frozen=False,
             trust_dataset=True,
             version=0,
         )
@@ -1197,8 +1172,6 @@ class MMLUProELTask(LightevalTaskConfig):
             generation_size=2048,
             metric=[mmlupro_el_metric],
             stop_sequence=[],  # no stop sequence, will use eot token
-            output_regex=None,
-            frozen=False,
             trust_dataset=True,
             version=0,
         )

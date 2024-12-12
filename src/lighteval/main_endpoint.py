@@ -107,7 +107,7 @@ def openai(
     Evaluate OPENAI models.
     """
     from lighteval.logging.evaluation_tracker import EvaluationTracker
-    from lighteval.models.model_config import OpenAIModelConfig
+    from lighteval.models.endpoints.openai_model import OpenAIModelConfig
     from lighteval.pipeline import EnvConfig, ParallelismManager, Pipeline, PipelineParameters
 
     env_config = EnvConfig(token=TOKEN, cache_dir=cache_dir)
@@ -215,7 +215,7 @@ def inference_endpoint(
     import yaml
 
     from lighteval.logging.evaluation_tracker import EvaluationTracker
-    from lighteval.models.model_config import (
+    from lighteval.models.endpoints.endpoint_model import (
         InferenceEndpointModelConfig,
     )
     from lighteval.pipeline import EnvConfig, ParallelismManager, Pipeline, PipelineParameters
@@ -245,7 +245,7 @@ def inference_endpoint(
         "endpoint_name": config["base_params"].get("endpoint_name", None),
         "model_dtype": config["base_params"].get("dtype", None),
         "revision": config["base_params"].get("revision", None) or "main",
-        "should_reuse_existing": config["base_params"].get("should_reuse_existing"),
+        "reuse_existing": config["base_params"].get("reuse_existing"),
         "accelerator": config.get("instance", {}).get("accelerator", None),
         "region": config.get("instance", {}).get("region", None),
         "vendor": config.get("instance", {}).get("vendor", None),
@@ -352,7 +352,7 @@ def tgi(
     import yaml
 
     from lighteval.logging.evaluation_tracker import EvaluationTracker
-    from lighteval.models.model_config import TGIModelConfig
+    from lighteval.models.endpoints import TGIModelConfig
     from lighteval.pipeline import EnvConfig, ParallelismManager, Pipeline, PipelineParameters
 
     env_config = EnvConfig(token=TOKEN, cache_dir=cache_dir)
