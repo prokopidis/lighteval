@@ -112,7 +112,7 @@ def load_openai_model(config: OpenAIModelConfig, env_config: EnvConfig):
         raise ImportError()
 
     model = OpenAIClient(config, env_config)
-    
+
     return model
 
 

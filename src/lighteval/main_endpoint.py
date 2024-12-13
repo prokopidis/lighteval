@@ -331,7 +331,7 @@ def tgi(
     import yaml
 
     from lighteval.logging.evaluation_tracker import EvaluationTracker
-    from lighteval.models.endpoints import TGIModelConfig
+    from lighteval.models.endpoints.tgi_model import TGIModelConfig
     from lighteval.pipeline import EnvConfig, ParallelismManager, Pipeline, PipelineParameters
 
     env_config = EnvConfig(token=TOKEN, cache_dir=cache_dir)

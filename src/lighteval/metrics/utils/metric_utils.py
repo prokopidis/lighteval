@@ -91,11 +91,9 @@ class CorpusLevelMetric(Metric):
     """Metric computed over the whole corpora, with computations happening at the aggregation phase"""
 
 
-
 @dataclass
 class SampleLevelMetric(Metric):
     """Metric computed per sample, then aggregated over the corpus"""
-
 
 
 @dataclass
@@ -103,8 +101,6 @@ class CorpusLevelMetricGrouping(MetricGrouping):
     """MetricGrouping computed over the whole corpora, with computations happening at the aggregation phase"""
 
 
-
 @dataclass
 class SampleLevelMetricGrouping(MetricGrouping):
     """MetricGrouping are computed per sample, then aggregated over the corpus"""
-

@@ -77,7 +77,7 @@ class OpenAIClient(LightevalModel):
         # LiteLLM-specific
         self.litellm_proxy_request = True if config.base_url else False
         if self.litellm_proxy_request:
-                    self.client.base_url = config.base_url
+            self.client.base_url = config.base_url
 
         self.model_info = ModelInfo(
             model_name=config.model,

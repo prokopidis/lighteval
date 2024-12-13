@@ -111,7 +111,8 @@ lighteval endpoint openai \
       "community|mmlu_pro_cot_el|0|0" \
       --output-dir="./evals/" \
       --custom-tasks "./community_tasks/greek_evals.py" \
-      --save-details
+      --save-details \
+      --max-samples 10
 ```
 
 You can optionally add the `--max-samples 10` flag for quick testing. This will limit the run to only 10 benchmark rows.
