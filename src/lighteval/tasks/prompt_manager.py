@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import logging
 import random
 from collections import defaultdict
 from dataclasses import dataclass
@@ -27,10 +28,12 @@ from enum import Enum
 from itertools import cycle
 from typing import TYPE_CHECKING, Optional, Tuple, Union
 
-from lighteval.logging.hierarchical_logger import hlog_warn
 from lighteval.models.abstract_model import LightevalModel
 from lighteval.tasks.requests import Doc
 from lighteval.utils.utils import as_list
+
+
+logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
@@ -89,7 +92,7 @@ class PromptManager:
             formatted_doc (Doc): Formatted document.
 
         Returns:
-            str: Class of the
+            str: Class of the fewshot document
         """
         return formatted_doc.fewshot_sorting_class or PromptManager.doc_to_target(formatted_doc)
 
@@ -257,7 +260,7 @@ class PromptManager:
             if hasattr(self.model.tokenizer, "apply_chat_template"):
                 return self.model.tokenizer.apply_chat_template(examples, tokenize=False, add_generation_prompt=True)
             else:
-                hlog_warn(
+                logger.warning(
                     f"The tokenizer of type {type(self.model.tokenizer)} does not support "
                     "`apply_chat_template` or equivalent functionality. This is not an issue "
                     "if you're using an API, such as a GPT model. Continuing without it."
@@ -366,12 +369,13 @@ class FewShotSampler:
         self._fewshot_cache[variance_seed] = fewshotpool  # Store few shot examples
 
     def _init_fewshot_sampling_random(self, variance_seed: int):
-        fewshotpool = self.task.fewshot_docs()
+        fewshotpool = list(self.task.fewshot_docs())
         if variance_seed == 0:
             self._fewshot_cache[variance_seed] = fewshotpool
         else:  # we shuffle
             rnd = random.Random(variance_seed)
-            self._fewshot_cache[variance_seed] = rnd.shuffle(fewshotpool)
+            rnd.shuffle(fewshotpool)
+            self._fewshot_cache[variance_seed] = fewshotpool
 
     def _init_fewshot_sampling_balanced(
         self,
@@ -429,5 +433,5 @@ class FewShotSampler:
         if few_shot_iterations <= 1:
             return [0]
         seeds = range(few_shot_iterations)
-        hlog_warn(f"Running {self.task.name} with {few_shot_iterations} few-shot iterations.")
+        logger.warning(f"Running {self.task.name} with {few_shot_iterations} few-shot iterations.")
         return seeds

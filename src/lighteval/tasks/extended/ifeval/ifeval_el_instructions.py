@@ -48,8 +48,7 @@ _NUM_BULLETS = 5
 
 # The options of constrained response.
 _CONSTRAINED_RESPONSE_OPTIONS = (
-    "Η απάντησή μου είναι ναι."
-    "Η απάντησή μου είναι όχι.",
+    "Η απάντησή μου είναι ναι." "Η απάντησή μου είναι όχι.",
     "Η απάντησή μου είναι ίσως.",
 )
 
@@ -57,9 +56,7 @@ _CONSTRAINED_RESPONSE_OPTIONS = (
 _STARTER_OPTIONS = (
     "Θα έλεγα",
     "Η απάντησή μου είναι",
-    "Πιστεύω"
-    "Κατά την γνώμη μου"
-    "Νομίζω",
+    "Πιστεύω" "Κατά την γνώμη μου" "Νομίζω",
     "Υποθέτω",
     "Νιώθω",
     "Κατά την άποψή μου",
@@ -87,7 +84,7 @@ _NUM_SECTIONS = 5
 _NUM_PARAGRAPHS = 5
 
 # The postscript marker.
-_POSTSCRIPT_MARKER = ("Υ.Γ.")
+_POSTSCRIPT_MARKER = "Υ.Γ."
 
 # The number of keywords.
 _NUM_KEYWORDS = 2
@@ -1458,8 +1455,7 @@ class LowercaseLettersGreekChecker(Instruction):
     def build_description(self):
         """Build the instruction description."""
         self._description_pattern = (
-            "Your entire response should be in Greek, and in all lowercase"
-            " letters. No capital letters are allowed."
+            "Your entire response should be in Greek, and in all lowercase" " letters. No capital letters are allowed."
         )
         return self._description_pattern
 

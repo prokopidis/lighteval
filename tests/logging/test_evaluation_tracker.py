@@ -21,7 +21,6 @@
 # SOFTWARE.
 
 import json
-import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -34,7 +33,7 @@ from lighteval.logging.evaluation_tracker import EvaluationTracker
 from lighteval.logging.info_loggers import DetailsLogger
 
 # ruff: noqa
-from tests.fixtures import TESTING_EMPTY_HF_ORG_ID, testing_empty_hf_org_id
+from tests.fixtures import TESTING_EMPTY_HF_ORG_ID
 
 
 @pytest.fixture

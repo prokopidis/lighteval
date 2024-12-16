@@ -42,7 +42,7 @@ from lighteval.metrics.utils.metric_utils import (
     SampleLevelMetric,
     SampleLevelMetricGrouping,
 )
-from lighteval.tasks.default_prompts import hellaswag_preprocess, mgsm
+from lighteval.tasks.default_prompts import hellaswag_preprocess
 from lighteval.tasks.extended.ifeval import (
     ifeval_el_instructions_registry as instructions_registry,
 )
@@ -63,6 +63,7 @@ from lighteval.tasks.extended.mt_bench.main import (
 )
 from lighteval.tasks.lighteval_task import LightevalTaskConfig
 from lighteval.tasks.requests import Doc
+
 
 # MMLU
 
@@ -174,8 +175,6 @@ class MMLUELTask(LightevalTaskConfig):
             generation_size=1,
             metric=[Metrics.loglikelihood_acc],
             stop_sequence=["\n"],
-            output_regex=None,
-            frozen=False,
             trust_dataset=True,
             version=0,
         )
@@ -185,19 +184,10 @@ def mmlu_el_prompt(line, topic, task_name: str = None):
     # TODO probably have to change choice labels.
     query = f"Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής (που παρουσιάζονται μαζί με της απαντήσεις τους) έχουν να κάνουν με {line['subject'].replace('_', ' ')}.\n\n"
     query += line["question"] + "\n"
-    query += "".join(
-        [
-            f"{key}. {choice}\n"
-            for key, choice in zip(GREEK_LETTER_INDICES, line["choices"])
-        ]
-    )
+    query += "".join([f"{key}. {choice}\n" for key, choice in zip(GREEK_LETTER_INDICES, line["choices"])])
     query += "Απάντηση:"
 
-    gold_ix = (
-        GREEK_LETTER_INDICES.index(line["answer"])
-        if isinstance(line["answer"], str)
-        else line["answer"]
-    )
+    gold_ix = GREEK_LETTER_INDICES.index(line["answer"]) if isinstance(line["answer"], str) else line["answer"]
     "__few_shots" in line and line["__few_shots"] is True  # They are adding few shots
 
     return Doc(
@@ -209,9 +199,7 @@ def mmlu_el_prompt(line, topic, task_name: str = None):
     )
 
 
-MMLU_EL_TASKS = [
-    MMLUELTask(name=f"mmlu_el:{subset}", hf_subset=subset) for subset in MMLU_EL_SUBSETS
-]
+MMLU_EL_TASKS = [MMLUELTask(name=f"mmlu_el:{subset}", hf_subset=subset) for subset in MMLU_EL_SUBSETS]
 
 
 # ARC
@@ -238,8 +226,6 @@ class ARCELTask(LightevalTaskConfig):
             generation_size=1,
             metric=[Metrics.loglikelihood_acc, Metrics.loglikelihood_acc_norm_nospace],
             stop_sequence=["\n"],
-            output_regex=None,
-            frozen=False,
             trust_dataset=True,
             version=0,
         )
@@ -255,10 +241,7 @@ def arc_el_prompt(line, task_name: str = None):
 
 
 ARC_SUBSET_MAPPER = {"ARC-Challenge": "challenge", "ARC-Easy": "easy"}
-ARC_EL_TASKS = [
-    ARCELTask(name=f"arc_el:{ARC_SUBSET_MAPPER[subset]}", hf_subset=subset)
-    for subset in ARC_EL_SUBSETS
-]
+ARC_EL_TASKS = [ARCELTask(name=f"arc_el:{ARC_SUBSET_MAPPER[subset]}", hf_subset=subset) for subset in ARC_EL_SUBSETS]
 
 
 # TruthfulQA
@@ -282,14 +265,9 @@ def truthfulqa_mc_prompt_el(line, task_name: str = None):
     return Doc(
         task_name=task_name,
         query=f"{pre_query}Ερώτηση: {line['question']}\nΑπάντηση",
-        choices=[f" {c}" for c in line["mc1_targets"]["choices"]]
-        + [f" {c}" for c in line["mc2_targets"]["choices"]],
+        choices=[f" {c}" for c in line["mc1_targets"]["choices"]] + [f" {c}" for c in line["mc2_targets"]["choices"]],
         gold_index=[
-            ix
-            for ix, label in enumerate(
-                line["mc1_targets"]["labels"] + line["mc2_targets"]["labels"]
-            )
-            if label == 1
+            ix for ix, label in enumerate(line["mc1_targets"]["labels"] + line["mc2_targets"]["labels"]) if label == 1
         ],
         specific={"len_mc1": len(line["mc1_targets"]["choices"])},
     )
@@ -314,18 +292,14 @@ def truthfulqa_gen_prompt_el(line, task_name: str = None):
     # query = line["question"].strip()
 
     correct_answers = [
-        answer.strip() + ("" if answer[-1] == "." else ".")
-        for answer in line["correct_answers"]
-        if answer != ""
+        answer.strip() + ("" if answer[-1] == "." else ".") for answer in line["correct_answers"] if answer != ""
     ]
     # TODO change this to something it's actually trained to answer
     if "Δεν έχω κανένα σχόλιο." not in correct_answers:
         correct_answers.append("Δεν έχω κανένα σχόλιο.")
 
     incorrect_answers = [
-        answer.strip() + ("" if answer[-1] == "." else ".")
-        for answer in line["incorrect_answers"]
-        if answer != ""
+        answer.strip() + ("" if answer[-1] == "." else ".") for answer in line["incorrect_answers"] if answer != ""
     ]
 
     return Doc(
@@ -349,8 +323,6 @@ thruthfulqa_mc_el_task = LightevalTaskConfig(
     generation_size=-1,
     metric=[Metrics.truthfulqa_mc_metrics],
     stop_sequence=["\n"],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -369,8 +341,6 @@ thruthfulqa_gen_el_task = LightevalTaskConfig(
     generation_size=200,
     metric=[Metrics.bleu],
     stop_sequence=["\n"],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -378,7 +348,7 @@ thruthfulqa_gen_el_task = LightevalTaskConfig(
 TRUTHFULQA_TASKS = [thruthfulqa_mc_el_task, thruthfulqa_gen_el_task]
 
 
-#################### FIXED MT TRUTHFULQA ####################
+# FIXED MT TRUTHFULQA ####################
 
 thruthfulqa_mc_el_mt_task = copy.deepcopy(thruthfulqa_mc_el_task)
 thruthfulqa_gen_el_mt_task = copy.deepcopy(thruthfulqa_gen_el_task)
@@ -413,10 +383,7 @@ def truthfulqa_mc_mt_prompt_el(line, task_name: str = None, use_mt_columns=True)
         + [f" {c}" for c in line[mc2_targets_column_str]["choices"]],
         gold_index=[
             ix
-            for ix, label in enumerate(
-                line[mc1_targets_column_str]["labels"]
-                + line[mc2_targets_column_str]["labels"]
-            )
+            for ix, label in enumerate(line[mc1_targets_column_str]["labels"] + line[mc2_targets_column_str]["labels"])
             if label == 1
         ],
         specific={"len_mc1": len(line[mc1_targets_column_str]["choices"])},
@@ -491,9 +458,7 @@ def greek_civics_qa_prompt(line, task_name: str = None):
     query = "Απάντησε στην παρακάτω ερώτηση που σχετίζεται με το μάθημα της κοινωνικής και πολιτικής αγωγής.\n\n"
     query += f"Ερώτηση:\n{line['question'].strip()}\n\n"
     query += "Απάντηση:\n"
-    return Doc(
-        task_name=task_name, query=query, choices=[line["answer"].strip()], gold_index=0
-    )
+    return Doc(task_name=task_name, query=query, choices=[line["answer"].strip()], gold_index=0)
 
 
 greek_civics_qa_task = LightevalTaskConfig(
@@ -509,8 +474,6 @@ greek_civics_qa_task = LightevalTaskConfig(
     generation_size=100,
     metric=[Metrics.bleu],
     stop_sequence=["\n"],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -542,8 +505,6 @@ hellaswag_el_task = LightevalTaskConfig(
     generation_size=-1,
     metric=[Metrics.loglikelihood_acc, Metrics.loglikelihood_acc_norm],
     stop_sequence=["\n"],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -553,7 +514,6 @@ hellaswag_el_task = LightevalTaskConfig(
 
 
 def xnli_prompt_el(line, task_name: str = None):
-
     # XNLI implementation has Επίσης. Sounds mega bad, but here we are
     return Doc(
         task_name=task_name,
@@ -576,8 +536,6 @@ xnli_el_task = LightevalTaskConfig(
     generation_size=1,
     metric=[loglikelihood_acc_metric(normalization=LogProbTokenNorm())],
     stop_sequence=[],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -596,8 +554,6 @@ xnli_2_el_task = LightevalTaskConfig(
     generation_size=1,
     metric=[loglikelihood_acc_metric(normalization=LogProbTokenNorm())],
     stop_sequence=[],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -629,8 +585,6 @@ medical_mc_qa_el_task = LightevalTaskConfig(
     generation_size=1,
     metric=[Metrics.loglikelihood_acc, Metrics.loglikelihood_acc_norm_nospace],
     stop_sequence=["\n"],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -656,8 +610,6 @@ class BELEBELETask(LightevalTaskConfig):
             generation_size=1,
             metric=[Metrics.loglikelihood_acc, Metrics.loglikelihood_acc_norm_nospace],
             stop_sequence=["\n"],
-            output_regex=None,
-            frozen=False,
             trust_dataset=True,
             version=0,
         )
@@ -718,8 +670,6 @@ class Flores200Task(LightevalTaskConfig):
             generation_size=100,
             metric=[Metrics.bleu],
             stop_sequence=["\n"],
-            output_regex=None,
-            frozen=False,
             trust_dataset=True,
             version=0,
         )
@@ -757,9 +707,7 @@ FLORES200_PROMPT_FN_MAPPER = {
 }
 
 FLORES200_TASKS = [
-    Flores200Task(
-        name=f"flores200:{direction}", prompt_fn=FLORES200_PROMPT_FN_MAPPER[direction]
-    )
+    Flores200Task(name=f"flores200:{direction}", prompt_fn=FLORES200_PROMPT_FN_MAPPER[direction])
     for direction in FLORES200_DIRECTIONS
 ]
 
@@ -777,7 +725,7 @@ def parsed_answer_acc(predictions: list[str], formatted_doc: Doc, **kwargs) -> d
             all_numbers = re.findall(number_regex, line)
             if all_numbers:
                 parsed_response = all_numbers[-1][0]
-    except:
+    except Exception:
         pass
     return parsed_response == formatted_doc.choices[formatted_doc.gold_index].strip()
 
@@ -820,8 +768,6 @@ mgsm_el_task = LightevalTaskConfig(
     generation_size=250,
     metric=[mgsm_el_metric],
     stop_sequence=[],
-    output_regex=None,
-    frozen=False,
     trust_dataset=True,
     version=0,
 )
@@ -839,13 +785,9 @@ def flow_judge_mt_bench_el_prompt(question, answer, options, gold):
 
 def flow_judge_mt_bench_el_prompt_greek_judge(question, answer, options, gold):
     if gold is not None and len(gold) > 0:
-        return flow_judge_prompt_mt_bench_el_with_ref_greek_judge(
-            question, options, answer, gold
-        )
+        return flow_judge_prompt_mt_bench_el_with_ref_greek_judge(question, options, answer, gold)
 
-    return flow_judge_prompt_mt_bench_el_without_ref_greek_judge(
-        question, options, answer, gold
-    )
+    return flow_judge_prompt_mt_bench_el_without_ref_greek_judge(question, options, answer, gold)
 
 
 llm_judge_mt_bench_el = SampleLevelMetricGrouping(
@@ -913,7 +855,6 @@ class MTBenchElTask(LightevalTaskConfig):
             metric=[metric_fn],
             generation_size=1024,
             stop_sequence=[],
-            frozen=False,
             trust_dataset=True,
             version=0,
         )
@@ -999,11 +940,7 @@ def ifeval_metric(predictions: list[str], formatted_doc: Doc, **kwargs) -> dict:
         instruction = instruction_cls(instruction_id)
 
         # Remove None values from kwargs to avoid unexpected keyword argument errors in build_description method.
-        task_kwargs = {
-            k: cast_input(v)
-            for k, v in all_kwargs[index].items()
-            if (v and v != "None")
-        }
+        task_kwargs = {k: cast_input(v) for k, v in all_kwargs[index].items() if (v and v != "None")}
         print(task_kwargs)
         print(type(v) for _, v in task_kwargs)
         instruction.build_description(**task_kwargs)
@@ -1119,9 +1056,7 @@ def format_cot_example(example, including_answer=True):
     for i, opt in enumerate(options):
         prompt += "{}. {}\n".format(MMLU_PRO_CHOICES[i], opt)
     if including_answer:
-        cot_content = example["cot_content"].replace(
-            "Α: Σκέψου βήμα προς βήμα.", "Απάντηση: Σκέψου βήμα προς βήμα."
-        )
+        cot_content = example["cot_content"].replace("Α: Σκέψου βήμα προς βήμα.", "Απάντηση: Σκέψου βήμα προς βήμα.")
         prompt += cot_content + "\n\n"
     else:
         prompt += "Απάντηση: Σκέψου βήμα προς βήμα."
@@ -1142,15 +1077,11 @@ def format_example(example):
 
 def mmlu_pro_el_prompt(line, task_name: str = None):
     # TODO probably have to change choice labels. And fix prompt (maybe add subject in prompt)
-    prompt = """Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής παρουσιάζονται μαζί με της απαντήσεις τους. 
-    Σκέψου βήμα προς βήμα και τέλειωσε την απάντηση σου με "η απάντηση είναι (Χ)" 
+    prompt = """Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής παρουσιάζονται μαζί με της απαντήσεις τους.
+    Σκέψου βήμα προς βήμα και τέλειωσε την απάντηση σου με "η απάντηση είναι (Χ)"
     όπου Χ είναι το γράμμα που αντιστοιχτεί στην σωστή επιλογή.\n"""
     query = prompt + format_example(line)
-    gold_ix = (
-        MMLU_PRO_CHOICES.index(line["answer"])
-        if isinstance(line["answer"], str)
-        else line["answer"]
-    )
+    gold_ix = MMLU_PRO_CHOICES.index(line["answer"]) if isinstance(line["answer"], str) else line["answer"]
     choices = MMLU_PRO_CHOICES[: len(line["options"])]
     return Doc(
         task_name=task_name,
@@ -1162,16 +1093,12 @@ def mmlu_pro_el_prompt(line, task_name: str = None):
 
 
 def mmlu_pro_el_cot_prompt(line, task_name: str = None):
-    prompt = """Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής παρουσιάζονται μαζί με της απαντήσεις τους. 
-    Σκέψου βήμα προς βήμα και τέλειωσε την απάντηση σου με "η απάντηση είναι (Χ)" 
+    prompt = """Οι ακόλουθες ερωτήσεις πολλαπλής επιλογής παρουσιάζονται μαζί με της απαντήσεις τους.
+    Σκέψου βήμα προς βήμα και τέλειωσε την απάντηση σου με "η απάντηση είναι (Χ)"
     όπου Χ είναι το γράμμα που αντιστοιχτεί στην σωστή επιλογή.\n"""
     # TODO probably have to change choice labels.
     query = prompt + format_cot_example(line)
-    gold_ix = (
-        MMLU_PRO_CHOICES.index(line["answer"])
-        if isinstance(line["answer"], str)
-        else line["answer"]
-    )
+    gold_ix = MMLU_PRO_CHOICES.index(line["answer"]) if isinstance(line["answer"], str) else line["answer"]
     choices = MMLU_PRO_CHOICES[: len(line["options"])]
     return Doc(
         task_name=task_name,
@@ -1209,9 +1136,7 @@ def extract_final(text):
         return None
 
 
-def parsed_mmlu_pro_answer_acc(
-    predictions: list[str], formatted_doc: Doc, **kwargs
-) -> dict:
+def parsed_mmlu_pro_answer_acc(predictions: list[str], formatted_doc: Doc, **kwargs) -> dict:
     parsed_response = extract_answer(predictions[0])
     return parsed_response == formatted_doc.choices[formatted_doc.gold_index].strip()
 
@@ -1247,17 +1172,13 @@ class MMLUProELTask(LightevalTaskConfig):
             generation_size=2048,
             metric=[mmlupro_el_metric],
             stop_sequence=[],  # no stop sequence, will use eot token
-            output_regex=None,
-            frozen=False,
             trust_dataset=True,
             version=0,
         )
 
 
 MMLU_PRO_EL_TASKS = [
-    MMLUProELTask(
-        name=f"mmlu_pro_{prompt_strat}", prompt_fn=MMLU_PRO_EL_PROMPT_FNS[prompt_strat]
-    )
+    MMLUProELTask(name=f"mmlu_pro_{prompt_strat}", prompt_fn=MMLU_PRO_EL_PROMPT_FNS[prompt_strat])
     for prompt_strat in MMLU_PRO_EL_PROMPT_FNS
 ]
 

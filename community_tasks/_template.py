@@ -30,11 +30,9 @@ Author:
 """
 
 import numpy as np
-from aenum import extend_enum
 
-from lighteval.metrics.metrics import Metrics, SampleLevelMetric
+from lighteval.metrics.metrics import SampleLevelMetric
 from lighteval.metrics.utils.metric_utils import MetricCategory, MetricUseCase
-from lighteval.tasks.default_prompts import LETTER_INDICES
 from lighteval.tasks.lighteval_task import LightevalTaskConfig
 from lighteval.tasks.requests import Doc
 
@@ -99,8 +97,6 @@ class CustomSubsetTask(LightevalTaskConfig):
             suite=["community"],
             generation_size=-1,
             stop_sequence=None,
-            output_regex=None,
-            frozen=False,
         )
 
 

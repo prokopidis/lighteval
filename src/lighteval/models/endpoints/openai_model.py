@@ -20,19 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import logging
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
-from functools import partial
+from dataclasses import dataclass
 from typing import Optional
 
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
 from lighteval.data import GenerativeTaskDataset, LoglikelihoodDataset
-from lighteval.logging.hierarchical_logger import hlog_warn
 from lighteval.models.abstract_model import LightevalModel
-from lighteval.models.endpoint_model import ModelInfo
+from lighteval.models.endpoints.endpoint_model import ModelInfo
 from lighteval.models.model_output import (
     GenerativeResponse,
     LoglikelihoodResponse,
@@ -47,6 +47,9 @@ from lighteval.tasks.requests import (
 from lighteval.utils.imports import is_openai_available
 
 
+logger = logging.getLogger(__name__)
+
+
 if is_openai_available():
     import logging
 
@@ -57,15 +60,22 @@ if is_openai_available():
     logging.getLogger("httpx").setLevel(logging.ERROR)
 
 
+@dataclass
+class OpenAIModelConfig:
+    model: str
+    base_url: Optional[str] = None
+    tokenizer: Optional[str] = None
+
+
 class OpenAIClient(LightevalModel):
     _DEFAULT_MAX_LENGTH: int = 4096
 
     def __init__(self, config, env_config) -> None:
         api_key = os.environ["OPENAI_API_KEY"]
-        
-        self.litellm_proxy_request = True if config.base_url else False
-
         self.client = OpenAI(api_key=api_key)
+
+        # LiteLLM-specific
+        self.litellm_proxy_request = True if config.base_url else False
         if self.litellm_proxy_request:
             self.client.base_url = config.base_url
 
@@ -80,26 +90,19 @@ class OpenAIClient(LightevalModel):
         self.API_RETRY_MULTIPLIER = 2
         self.CONCURENT_CALLS = 100
         self.model = config.model
-
         if not config.tokenizer:
             self._tokenizer = tiktoken.encoding_for_model(self.model)
         else:
             self._tokenizer = AutoTokenizer.from_pretrained(config.tokenizer)
-
         self.pairwise_tokenization = False
 
     def __call_api(self, prompt, return_logits, max_new_tokens, num_samples, logit_bias):
-        
-        # TODO check why response_format={"type": "text"} isn't compatible with LiteLLM proxy
-        completion_request = self.client.chat.completions.create
-        if not self.litellm_proxy_request:
-            completion_request = partial(self.client.chat.completions.create, response_format = {"type":"text"})
-
         for _ in range(self.API_MAX_RETRY):
-            try:               
-                response = completion_request(
+            try:
+                response = self.client.chat.completions.create(
                     model=self.model,
                     messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "text"},
                     max_tokens=max_new_tokens if max_new_tokens > 0 else None,
                     logprobs=return_logits,
                     logit_bias=logit_bias,
@@ -107,12 +110,12 @@ class OpenAIClient(LightevalModel):
                 )
                 return response
             except Exception as e:
-                hlog_warn(f"{type(e), e}")
+                logger.warning(f"{type(e), e}")
                 try:
                     time.sleep(self.API_RETRY_SLEEP)
                     self.API_RETRY_SLEEP = self.API_RETRY_SLEEP**self.API_RETRY_MULTIPLIER
                 except OverflowError:
-                    hlog_warn("API retry delay too large; possible misconfiguration or extended downtime.")
+                    logger.warning("API retry delay too large; possible misconfiguration or extended downtime.")
                     raise Exception("API is offline or unreachable.")
         raise Exception("Failed to get response from the API")
 
