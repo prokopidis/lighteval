@@ -589,9 +589,9 @@ medical_mc_qa_el_task = LightevalTaskConfig(
     version=0,
 )
 
-# ASEPMCQA
+# MCQA_ASEP
 
-def asepmcqa_prompt_el(line, task_name: str = None):
+def mcqa_asep_prompt_el(line, task_name: str = None):
     mcs = "\n".join(line["choices"])
     return Doc(
         task_name=task_name,
@@ -601,11 +601,11 @@ def asepmcqa_prompt_el(line, task_name: str = None):
     )
 
 
-asepmcqa_el_task = LightevalTaskConfig(
-    name="asepmcqa",
+mcqa_asep_el_task = LightevalTaskConfig(
+    name="mcqa_asep",
     suite=["community"],
-    prompt_function=asepmcqa_prompt_el,
-    hf_repo="ilsp/asep_mcqa_greek",
+    prompt_function=mcqa_asep_prompt_el,
+    hf_repo="ilsp/mcqa_greek_asep",
     hf_subset="default",
     hf_avail_splits=["default"],
     evaluation_splits=["default"],
@@ -1224,7 +1224,7 @@ _TASKS = (
     + [greek_civics_qa_task]
     + [mgsm_el_task]
     + [ifeval_el_task]
-    + [asepmcqa_el_task]
+    + [mcqa_asep_el_task]
 )
 
 # TODO test the ones in the commented out _TASKS that are not in the new one
