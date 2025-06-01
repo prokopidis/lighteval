@@ -589,6 +589,33 @@ medical_mc_qa_el_task = LightevalTaskConfig(
     version=0,
 )
 
+# ASEPMCQA
+
+def asepmcqa_prompt_el(line, task_name: str = None):
+    mcs = "\n".join(line["choices"])
+    return Doc(
+        task_name=task_name,
+        query=f"Ερώτηση: {line['question']}\n\nΕπιλογές:\n{mcs}\n\nΑπάντηση:",
+        choices=[f" {c}" for c in line["choices"]],
+        gold_index=line["answer"],
+    )
+
+
+asepmcqa_el_task = LightevalTaskConfig(
+    name="asepmcqa",
+    suite=["community"],
+    prompt_function=asepmcqa_prompt_el,
+    hf_repo="ilsp/asep_mcqa_greek",
+    hf_subset="default",
+    hf_avail_splits=["default"],
+    evaluation_splits=["default"],
+    generation_size=1,
+    metric=[Metrics.loglikelihood_acc, Metrics.loglikelihood_acc_norm_nospace],
+    stop_sequence=["\n"],
+    trust_dataset=True,
+    version=0,
+)
+
 
 # BELEBELE el
 
@@ -1197,6 +1224,7 @@ _TASKS = (
     + [greek_civics_qa_task]
     + [mgsm_el_task]
     + [ifeval_el_task]
+    + [asepmcqa_el_task]
 )
 
 # TODO test the ones in the commented out _TASKS that are not in the new one
